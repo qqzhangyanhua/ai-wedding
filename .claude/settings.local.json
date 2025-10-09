@@ -7,7 +7,14 @@
       "Bash(pnpm run typecheck)",
       "Bash(pnpm add:*)",
       "Bash(npx shadcn-ui@latest add:*)",
-      "Bash(npx shadcn@latest add:*)"
+      "Bash(npx shadcn@latest add:*)",
+      "mcp__Fetch__fetch_url",
+      "mcp__Fetch__get_page_metadata",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_close",
+      "WebFetch(domain:www.reactbits.dev)"
     ],
     "deny": [],
     "ask": []

@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { useState } from 'react';
 import { AuthModal } from '../components/AuthModal';
 import { useAuth } from '../contexts/AuthContext';
+import { GradientText, FadeIn, SpotlightCard, GlassCard } from '@/components/react-bits';
 
 interface HomePageProps {
   onNavigate: (page: string) => void;
@@ -24,21 +25,34 @@ export function HomePage({ onNavigate }: HomePageProps) {
     <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-pink-50">
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-24">
         <div className="text-center space-y-8">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-            <Sparkles className="w-4 h-4" />
-            AI驱动的婚纱摄影
-          </div>
+          <FadeIn delay={0.2}>
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+              <Sparkles className="w-4 h-4" />
+              AI驱动的婚纱摄影
+            </div>
+          </FadeIn>
 
-          <h1 className="text-5xl md:text-7xl font-bold text-gray-900 leading-tight">
-            几分钟内创建
-            <span className="bg-gradient-to-r from-blue-600 to-pink-600 bg-clip-text text-transparent">绝美婚纱照</span>
-          </h1>
+          <FadeIn delay={0.4}>
+            <h1 className="text-5xl md:text-7xl font-bold text-gray-900 leading-tight">
+              几分钟内创建
+              <GradientText
+                colors={['#2563eb', '#ec4899', '#8b5cf6', '#ec4899', '#2563eb']}
+                animationSpeed={6}
+                className="block mt-2 text-5xl md:text-7xl font-bold px-6 py-2"
+              >
+                绝美婚纱照
+              </GradientText>
+            </h1>
+          </FadeIn>
 
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            用AI将您的照片转化为令人惊叹的婚纱回忆。无需离家即可前往巴黎、东京或奇幻世界。节省数万元传统摄影费用。
-          </p>
+          <FadeIn delay={0.6}>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+              用AI将您的照片转化为令人惊叹的婚纱回忆。无需离家即可前往巴黎、东京或奇幻世界。节省数万元传统摄影费用。
+            </p>
+          </FadeIn>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <FadeIn delay={0.8}>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
               onClick={handleGetStarted}
               className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl font-medium text-lg flex items-center gap-2"
@@ -53,9 +67,11 @@ export function HomePage({ onNavigate }: HomePageProps) {
             >
               浏览模板
             </button>
-          </div>
+            </div>
+          </FadeIn>
 
-          <div className="flex items-center justify-center gap-8 pt-4">
+          <FadeIn delay={1.0}>
+            <div className="flex items-center justify-center gap-8 pt-4">
             <div className="flex items-center gap-2">
               <div className="flex -space-x-2">
                 {[1, 2, 3, 4].map((i) => (
@@ -71,10 +87,12 @@ export function HomePage({ onNavigate }: HomePageProps) {
                 <p className="text-sm text-gray-600">10,000+ 幸福情侣</p>
               </div>
             </div>
-          </div>
+            </div>
+          </FadeIn>
         </div>
 
-        <div className="mt-20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <FadeIn delay={1.2}>
+          <div className="mt-20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
             'https://images.pexels.com/photos/338515/pexels-photo-338515.jpeg?auto=compress&cs=tinysrgb&w=400',
             'https://images.pexels.com/photos/2070033/pexels-photo-2070033.jpeg?auto=compress&cs=tinysrgb&w=400',
@@ -93,7 +111,8 @@ export function HomePage({ onNavigate }: HomePageProps) {
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
           ))}
-        </div>
+          </div>
+        </FadeIn>
       </section>
 
       <section className="bg-white py-24">
@@ -109,40 +128,49 @@ export function HomePage({ onNavigate }: HomePageProps) {
                 icon: Zap,
                 title: '更快更便宜',
                 description: '节省昂贵的摄影、化妆和场地成本，几分钟内生成百张照片。',
-                color: 'from-blue-500 to-indigo-600'
+                color: 'from-blue-500 to-indigo-600',
+                delay: 0.2
               },
               {
                 icon: DollarSign,
                 title: '成本极低',
                 description: '只需几十分之一的价格即可获得媲美专业摄影的效果。',
-                color: 'from-green-500 to-emerald-600'
+                color: 'from-green-500 to-emerald-600',
+                delay: 0.3
               },
               {
                 icon: Globe,
                 title: '随处取景',
                 description: '巴黎铁塔、东京樱花、冰岛极光……你想去的地方，都能实现。',
-                color: 'from-cyan-500 to-blue-600'
+                color: 'from-cyan-500 to-blue-600',
+                delay: 0.4
               },
               {
                 icon: Shield,
                 title: '隐私安全',
                 description: '您的照片经过加密，完全隐私。只有您才能访问生成的图像。',
-                color: 'from-red-500 to-pink-600'
+                color: 'from-red-500 to-pink-600',
+                delay: 0.5
               },
               {
                 icon: Camera,
                 title: '风格无限',
                 description: '尝试奇幻、艺术、经典和现代风格。想创建多少变化就创建多少。',
-                color: 'from-indigo-500 to-purple-600'
+                color: 'from-indigo-500 to-purple-600',
+                delay: 0.6
               }
             ].map((feature, i) => (
-              <div key={i} className="p-8 bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-100 hover:shadow-xl transition-all group">
-                <div className={`w-14 h-14 bg-gradient-to-br ${feature.color} rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
-                  <feature.icon className="w-7 h-7 text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
-                <p className="text-gray-600 leading-relaxed">{feature.description}</p>
-              </div>
+              <FadeIn key={i} delay={feature.delay}>
+                <GlassCard className="h-full">
+                  <div className="p-6">
+                    <div className={`w-14 h-14 bg-gradient-to-br ${feature.color} rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
+                      <feature.icon className="w-7 h-7 text-white" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
+                    <p className="text-gray-600 leading-relaxed">{feature.description}</p>
+                  </div>
+                </GlassCard>
+              </FadeIn>
             ))}
           </div>
         </div>

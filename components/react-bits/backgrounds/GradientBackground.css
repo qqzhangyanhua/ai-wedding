@@ -1,0 +1,60 @@
+.gradient-bg-container {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  overflow: hidden;
+  background: linear-gradient(to bottom, #0a0a0a, #1a1a1a);
+}
+
+.gradient-bg-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0.6;
+}
+
+.gradient-bg-orb {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  mix-blend-mode: screen;
+  animation: float 20s ease-in-out infinite;
+}
+
+.gradient-bg-orb-1 {
+  top: 10%;
+  left: 10%;
+  animation-delay: 0s;
+}
+
+.gradient-bg-orb-2 {
+  top: 50%;
+  right: 10%;
+  animation-delay: -7s;
+}
+
+.gradient-bg-orb-3 {
+  bottom: 10%;
+  left: 50%;
+  animation-delay: -14s;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(50px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-50px, 50px) scale(0.9);
+  }
+}
+
+.gradient-bg-content {
+  position: relative;
+  z-index: 1;
+}

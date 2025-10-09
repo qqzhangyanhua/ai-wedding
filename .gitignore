@@ -11,6 +11,11 @@ dist
 dist-ssr
 *.local
 
+.next/
+out/
+.vercel/
+tsconfig.tsbuildinfo
+
 .vscode/*
 !.vscode/extensions.json
 .idea

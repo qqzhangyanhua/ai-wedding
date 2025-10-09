@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { Heart, Sparkles, ArrowRight, Search, Loader2 } from 'lucide-react';
+import Image from 'next/image';
+import { Heart, Sparkles, ArrowRight, Search } from 'lucide-react';
 import { categoryInfo } from '../data/mockData';
 import { Template } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
 import { AuthModal } from '../components/AuthModal';
 import { useTemplates } from '../hooks/useTemplates';
+//
+import { CardSkeleton } from '@/components/ui/card-skeleton';
 import { useFavorites } from '../hooks/useFavorites';
 
 interface TemplatesPageProps {
@@ -35,7 +38,7 @@ export function TemplatesPage({ onNavigate }: TemplatesPageProps) {
   };
 
   const categories = [
-    { id: 'all', name: '所有模板', icon: '✨' },
+    { id: 'all', name: '所有模板', icon: Sparkles },
     ...Object.entries(categoryInfo).map(([id, info]) => ({
       id,
       name: info.name,
@@ -48,10 +51,10 @@ export function TemplatesPage({ onNavigate }: TemplatesPageProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            Choose Your Perfect
-            <span className="bg-gradient-to-r from-blue-600 to-pink-600 bg-clip-text text-transparent"> Style</span>
+            选择您完美的
+            <span className="bg-gradient-to-r from-blue-600 to-pink-600 bg-clip-text text-transparent"> 风格</span>
           </h1>
-          <p className="text-xl text-gray-600">Browse our collection of stunning wedding photo templates</p>
+          <p className="text-xl text-gray-600">浏览我们令人惊叹的婚纱照模板集合</p>
         </div>
 
         <div className="mb-8">
@@ -71,13 +74,17 @@ export function TemplatesPage({ onNavigate }: TemplatesPageProps) {
               <button
                 key={category.id}
                 onClick={() => setSelectedCategory(category.id)}
-                className={`px-6 py-3 rounded-xl font-medium transition-all ${
+                className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
                   selectedCategory === category.id
                     ? 'bg-gradient-to-r from-blue-600 to-pink-600 text-white shadow-md'
                     : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
                 }`}
               >
-                <span className="mr-2">{category.icon}</span>
+                {typeof category.icon === 'string' ? (
+                  <span className="text-base">{category.icon}</span>
+                ) : (
+                  <category.icon className="w-4 h-4" />
+                )}
                 {category.name}
               </button>
             ))}
@@ -91,8 +98,10 @@ export function TemplatesPage({ onNavigate }: TemplatesPageProps) {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <CardSkeleton key={i} aspectClass="aspect-[3/4]" lines={2} showBadge />
+            ))}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -102,10 +111,12 @@ export function TemplatesPage({ onNavigate }: TemplatesPageProps) {
               className="group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 cursor-pointer"
             >
               <div className="relative aspect-[3/4] overflow-hidden">
-                <img
+                <Image
                   src={template.preview_image_url}
                   alt={template.name}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  fill
+                  className="object-cover group-hover:scale-110 transition-transform duration-500"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
@@ -161,7 +172,9 @@ export function TemplatesPage({ onNavigate }: TemplatesPageProps) {
 
         {!loading && filteredTemplates.length === 0 && (
           <div className="text-center py-20">
-            <div className="text-6xl mb-4">🔍</div>
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search className="w-8 h-8 text-gray-400" />
+            </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-2">未找到模板</h3>
             <p className="text-gray-600">尝试调整搜索或筛选条件</p>
           </div>

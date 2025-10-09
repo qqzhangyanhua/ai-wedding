@@ -53,6 +53,8 @@ export function useProjects() {
               )
             )
           `)
+          .limit(1, { foreignTable: 'generations' })
+          .order('created_at', { ascending: false, foreignTable: 'generations' })
           .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -98,6 +100,8 @@ export function useProjects() {
             )
           )
         `)
+        .limit(1, { foreignTable: 'generations' })
+        .order('created_at', { ascending: false, foreignTable: 'generations' })
         .order('created_at', { ascending: false });
 
       if (error) throw error;

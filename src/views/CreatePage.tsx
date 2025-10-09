@@ -4,6 +4,9 @@ import { Template } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Toast } from '../components/Toast';
+import { generateImage } from '@/lib/image';
+import NextImage from 'next/image';
+import { compressDataUrl } from '@/lib/image-compress';
 
 interface CreatePageProps {
   onNavigate: (page: string) => void;
@@ -19,18 +22,27 @@ export function CreatePage({ onNavigate, selectedTemplate }: CreatePageProps) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    files.forEach(file => {
+    for (const file of files) {
+      const dataUrl = await fileToDataUrl(file);
+      try {
+        const compressed = await compressDataUrl(dataUrl, { maxWidth: 1600, maxHeight: 1600, quality: 0.85, mimeType: 'image/jpeg' });
+        setUploadedPhotos(prev => [...prev, compressed]);
+      } catch {
+        setUploadedPhotos(prev => [...prev, dataUrl]);
+      }
+    }
+  };
+
+  function fileToDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = (e) => {
-        if (e.target?.result) {
-          setUploadedPhotos(prev => [...prev, e.target!.result as string]);
-        }
-      };
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
       reader.readAsDataURL(file);
     });
-  };
+  }
 
   const removePhoto = (index: number) => {
     setUploadedPhotos(prev => prev.filter((_, i) => i !== index));
@@ -42,17 +54,20 @@ export function CreatePage({ onNavigate, selectedTemplate }: CreatePageProps) {
     setIsGenerating(true);
     setUploadProgress(0);
 
+    let generationId: string | null = null;
+    let interval: ReturnType<typeof setInterval> | null = null;
     try {
-      const interval = setInterval(() => {
+      interval = setInterval(() => {
         setUploadProgress(prev => Math.min(prev + 5, 90));
       }, 200);
 
+      // 1) 创建项目
       const { data: project, error: projectError } = await supabase
         .from('projects')
         .insert({
           user_id: profile.id,
           name: projectName,
-          status: 'draft',
+          status: 'processing',
           uploaded_photos: uploadedPhotos
         })
         .select()
@@ -60,6 +75,7 @@ export function CreatePage({ onNavigate, selectedTemplate }: CreatePageProps) {
 
       if (projectError) throw projectError;
 
+      // 2) 创建生成记录（pending）
       const { data: generation, error: generationError } = await supabase
         .from('generations')
         .insert({
@@ -73,7 +89,9 @@ export function CreatePage({ onNavigate, selectedTemplate }: CreatePageProps) {
         .single();
 
       if (generationError) throw generationError;
+      generationId = generation.id;
 
+      // 3) 扣减积分
       const { error: creditError } = await supabase
         .from('profiles')
         .update({ credits: profile.credits - selectedTemplate.price_credits })
@@ -83,18 +101,55 @@ export function CreatePage({ onNavigate, selectedTemplate }: CreatePageProps) {
 
       await refreshProfile();
 
-      clearInterval(interval);
+      // 4) 调用后端图片生成 API（OpenAI 兼容）
+      const prompt = `${selectedTemplate.name}: ${selectedTemplate.description || ''} wedding portrait, high quality, cinematic lighting`;
+      // 请求 4 张预览图，返回 URL
+      const items = await generateImage(prompt, { n: 4, size: '1024x1024', response_format: 'url' });
+      const urls = items.map((i) => i.url).filter(Boolean) as string[];
+
+      // 5) 更新生成记录与项目状态
+      const now = new Date().toISOString();
+      const { error: genUpdateErr } = await supabase
+        .from('generations')
+        .update({ status: 'completed', preview_images: urls, completed_at: now })
+        .eq('id', generation.id);
+      if (genUpdateErr) throw genUpdateErr;
+
+      const { error: projUpdateErr } = await supabase
+        .from('projects')
+        .update({ status: 'completed' })
+        .eq('id', project.id);
+      if (projUpdateErr) throw projUpdateErr;
+
+      if (interval) clearInterval(interval);
       setUploadProgress(100);
 
-      setToast({ message: '项目创建成功！正在准备生成...', type: 'success' });
+      setToast({ message: '生成完成！即将跳转到结果页', type: 'success' });
 
       setTimeout(() => {
-        onNavigate('dashboard');
-      }, 1000);
-    } catch (error) {
+        // 跳转到结果详情页
+        window.location.href = `/results/${generation.id}`;
+      }, 800);
+    } catch (error: unknown) {
       console.error('生成失败:', error);
+      // 标记为失败
+      try {
+        if (error instanceof Error && error.message.includes('生成失败')) {
+          // noop
+        }
+        if (generationId) {
+          await supabase
+            .from('generations')
+            .update({ status: 'failed', error_message: String(error) })
+            .eq('id', generationId);
+        }
+      } catch (persistErr) {
+        console.error('生成失败后回写失败:', persistErr);
+      }
       setToast({ message: '生成失败，请重试', type: 'error' });
       setIsGenerating(false);
+    } finally {
+      if (interval) clearInterval(interval);
     }
   };
 
@@ -115,10 +170,12 @@ export function CreatePage({ onNavigate, selectedTemplate }: CreatePageProps) {
         <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
           <div className="flex items-start gap-6 mb-8">
             {selectedTemplate && (
-              <img
+              <NextImage
                 src={selectedTemplate.preview_image_url}
                 alt={selectedTemplate.name}
-                className="w-32 h-40 object-cover rounded-xl shadow-md"
+                width={128}
+                height={160}
+                className="object-cover rounded-xl shadow-md w-32 h-40"
               />
             )}
             <div className="flex-1">
@@ -159,7 +216,15 @@ export function CreatePage({ onNavigate, selectedTemplate }: CreatePageProps) {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-4">
               {uploadedPhotos.map((photo, index) => (
                 <div key={index} className="relative aspect-square rounded-xl overflow-hidden group">
-                  <img src={photo} alt={`Upload ${index + 1}`} className="w-full h-full object-cover" />
+                  <NextImage
+                    src={photo}
+                    alt={`Upload ${index + 1}`}
+                    fill
+                    className="object-cover"
+                    placeholder="blur"
+                    blurDataURL={photo}
+                    sizes="(max-width: 768px) 33vw, (max-width: 1200px) 20vw, 10vw"
+                  />
                   <button
                     onClick={() => removePhoto(index)}
                     className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
@@ -197,7 +262,7 @@ export function CreatePage({ onNavigate, selectedTemplate }: CreatePageProps) {
                 <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
                 <div className="text-sm text-yellow-800">
                   <p className="font-medium mb-1">请上传至少5张照片才能继续</p>
-                  <p>More photos lead to better results. Make sure photos are clear, well-lit, and show your face from different angles.</p>
+                  <p>更多照片带来更好效果。请确保照片清晰、光线良好，并从不同角度展示您的面部。</p>
                 </div>
               </div>
             )}
@@ -208,7 +273,7 @@ export function CreatePage({ onNavigate, selectedTemplate }: CreatePageProps) {
               <p className="text-sm text-red-800">
                 积分不足。您需要 {selectedTemplate?.price_credits} 积分，但只有 {profile.credits}。
                 <button onClick={() => onNavigate('pricing')} className="ml-2 font-medium underline">
-                  Buy more credits
+                  购买更多积分
                 </button>
               </p>
             </div>
@@ -222,7 +287,7 @@ export function CreatePage({ onNavigate, selectedTemplate }: CreatePageProps) {
             {isGenerating ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Generating Magic...
+                正在生成魔法...
               </>
             ) : (
               <>

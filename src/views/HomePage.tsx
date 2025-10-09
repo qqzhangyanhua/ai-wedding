@@ -1,8 +1,8 @@
-import { Camera, Sparkles, Zap, Shield, DollarSign, Globe, ArrowRight, Star, Check } from 'lucide-react';
+import { Camera, Sparkles, Zap, Shield, DollarSign, Globe, ArrowRight, Star, Check, Upload, Palette, Heart } from 'lucide-react';
+import Image from 'next/image';
 import { useState } from 'react';
 import { AuthModal } from '../components/AuthModal';
 import { useAuth } from '../contexts/AuthContext';
-import { useTemplates } from '../hooks/useTemplates';
 
 interface HomePageProps {
   onNavigate: (page: string) => void;
@@ -10,7 +10,6 @@ interface HomePageProps {
 
 export function HomePage({ onNavigate }: HomePageProps) {
   const { user } = useAuth();
-  const { templates } = useTemplates();
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   const handleGetStarted = () => {
@@ -83,7 +82,14 @@ export function HomePage({ onNavigate }: HomePageProps) {
             'https://images.pexels.com/photos/2246476/pexels-photo-2246476.jpeg?auto=compress&cs=tinysrgb&w=400'
           ].map((url, i) => (
             <div key={i} className="relative rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all group cursor-pointer aspect-[3/4]">
-              <img src={url} alt="Example" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+              <Image
+                src={url}
+                alt="示例"
+                fill
+                className="object-cover group-hover:scale-110 transition-transform duration-500"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                priority={i === 0}
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
           ))}
@@ -100,28 +106,22 @@ export function HomePage({ onNavigate }: HomePageProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               {
+                icon: Zap,
+                title: '更快更便宜',
+                description: '节省昂贵的摄影、化妆和场地成本，几分钟内生成百张照片。',
+                color: 'from-blue-500 to-indigo-600'
+              },
+              {
                 icon: DollarSign,
-                title: '节省数万',
-                description: '专业婚纱摄影需花费3-7万元。使用AI只需一小部分成本即可获得无限照片。',
+                title: '成本极低',
+                description: '只需几十分之一的价格即可获得媲美专业摄影的效果。',
                 color: 'from-green-500 to-emerald-600'
               },
               {
-                icon: Zap,
-                title: '即时出图',
-                description: '无需等待几周。几分钟内生成数百张精美图像，而非几个月。',
-                color: 'from-yellow-500 to-orange-600'
-              },
-              {
                 icon: Globe,
-                title: '任意场景',
-                description: '巴黎、东京、城堡或水下。无需离家即可前往世界任何地方。',
-                color: 'from-blue-500 to-cyan-600'
-              },
-              {
-                icon: Sparkles,
-                title: '张张完美',
-                description: 'AI确保每张照片都有完美的光线、构图和美感。没有尴尬的姿势或糟糕的角度。',
-                color: 'from-purple-500 to-pink-600'
+                title: '随处取景',
+                description: '巴黎铁塔、东京樱花、冰岛极光……你想去的地方，都能实现。',
+                color: 'from-cyan-500 to-blue-600'
               },
               {
                 icon: Shield,
@@ -161,24 +161,26 @@ export function HomePage({ onNavigate }: HomePageProps) {
                 step: '1',
                 title: '上传照片',
                 description: '上传5-10张高质量照片。AI将学习您的独特面部特征。',
-                icon: '📸'
+                icon: Upload
               },
               {
                 step: '2',
                 title: '选择模板',
                 description: '浏览我们的精美模板库。挑选您喜爱的场景和风格。',
-                icon: '✨'
+                icon: Palette
               },
               {
                 step: '3',
                 title: '下载分享',
                 description: '几分钟内获得数百张专业照片。下载并分享您的最爱。',
-                icon: '💕'
+                icon: Heart
               }
             ].map((step, i) => (
               <div key={i} className="relative">
                 <div className="text-center space-y-4">
-                  <div className="text-6xl mb-4">{step.icon}</div>
+                  <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <step.icon className="w-8 h-8 text-white" />
+                  </div>
                   <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-600 to-pink-600 text-white rounded-full font-bold text-xl mb-4">
                     {step.step}
                   </div>

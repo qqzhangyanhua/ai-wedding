@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm:*)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm run dev)",
+      "Bash(pnpm run typecheck)",
+      "Bash(pnpm add:*)",
+      "Bash(npx shadcn-ui@latest add:*)",
+      "Bash(npx shadcn@latest add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -30,7 +30,7 @@ export function AuthModal({ onClose }: AuthModalProps) {
       }
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : '发生错误');
     } finally {
       setLoading(false);
     }
@@ -116,7 +116,7 @@ export function AuthModal({ onClose }: AuthModalProps) {
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Processing...
+                  处理中...
                 </>
               ) : (
                 <>{isLogin ? '登录' : '创建账号'}</>

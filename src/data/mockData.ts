@@ -1,4 +1,5 @@
 import { Template } from '../types/database';
+import { Sparkles, Palette, Crown, Globe } from 'lucide-react';
 
 export const mockTemplates: Template[] = [
   {
@@ -151,21 +152,21 @@ export const categoryInfo = {
   location: {
     name: 'Destination Locations',
     description: 'Iconic landmarks and breathtaking destinations',
-    icon: '🌍'
+    icon: Globe
   },
   fantasy: {
     name: 'Fantasy & Creative',
     description: 'Magical and imaginative scenes',
-    icon: '✨'
+    icon: Sparkles
   },
   artistic: {
     name: 'Artistic Styles',
     description: 'Classic art-inspired aesthetics',
-    icon: '🎨'
+    icon: Palette
   },
   classic: {
     name: 'Classic Elegance',
     description: 'Traditional and timeless settings',
-    icon: '👑'
+    icon: Crown
   }
 };

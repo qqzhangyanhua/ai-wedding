@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
 import { Header } from './components/Header';
-import { HomePage } from './pages/HomePage';
-import { TemplatesPage } from './pages/TemplatesPage';
-import { CreatePage } from './pages/CreatePage';
-import { ResultsPage } from './pages/ResultsPage';
-import { PricingPage } from './pages/PricingPage';
-import { DashboardPage } from './pages/DashboardPage';
+import { HomePage } from './views/HomePage';
+import { TemplatesPage } from './views/TemplatesPage';
+import { CreatePage } from './views/CreatePage';
+import { ResultsPage } from './views/ResultsPage';
+import { PricingPage } from './views/PricingPage';
+import { DashboardPage } from './views/DashboardPage';
 import { Template } from './types/database';
 
 type Page = 'home' | 'templates' | 'create' | 'results' | 'pricing' | 'dashboard';

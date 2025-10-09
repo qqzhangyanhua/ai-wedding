@@ -69,6 +69,7 @@ export function PricingPage({ onNavigate }: PricingPageProps) {
   const handlePurchase = async (planIndex: number) => {
     if (!user || !profile) {
       setToast({ message: '请先登录', type: 'error' });
+      onNavigate('home');
       return;
     }
 
@@ -76,17 +77,40 @@ export function PricingPage({ onNavigate }: PricingPageProps) {
     setPurchasing(planIndex);
 
     try {
-      const newCredits = profile.credits + plan.credits;
+      // 1) 创建订单（服务端校验 plan 和金额）
+      const { data: session } = await supabase.auth.getSession();
+      const token = session.session?.access_token;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const { error } = await supabase
-        .from('profiles')
-        .update({ credits: newCredits })
-        .eq('id', profile.id);
+      const createRes = await fetch('/api/orders/create', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ plan: plan.name }),
+      });
+      const createJson = await createRes.json();
+      if (!createRes.ok) throw new Error(createJson?.error || '创建订单失败');
 
-      if (error) throw error;
+      const payment_intent_id: string | undefined = createJson?.payment_intent_id;
+      const checkout_url: string | undefined = createJson?.checkout_url;
+      if (!payment_intent_id && !checkout_url) throw new Error('缺少支付信息');
+
+      if (checkout_url) {
+        // Stripe 等真实支付：跳转第三方支付页
+        window.location.href = checkout_url;
+        return;
+      } else {
+        // Mock 流程：直接调用“确认”接口
+        const confirmRes = await fetch('/api/orders/mock/confirm', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ payment_intent_id }),
+        });
+        const confirmJson = await confirmRes.json();
+        if (!confirmRes.ok) throw new Error(confirmJson?.error || '确认支付失败');
+      }
 
       await refreshProfile();
-
       setToast({ message: `购买成功！已添加 ${plan.credits} 积分到您的账户`, type: 'success' });
       setPurchasing(null);
     } catch (error) {
@@ -102,14 +126,14 @@ export function PricingPage({ onNavigate }: PricingPageProps) {
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium mb-6">
             <Sparkles className="w-4 h-4" />
-            Simple, Transparent Pricing
+            简单透明的定价
           </div>
           <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-4">
-            Choose Your
-            <span className="bg-gradient-to-r from-blue-600 to-pink-600 bg-clip-text text-transparent"> Perfect Plan</span>
+            选择您完美的
+            <span className="bg-gradient-to-r from-blue-600 to-pink-600 bg-clip-text text-transparent"> 套餐</span>
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Start free with 50 credits. Upgrade anytime for more generations and premium features.
+            免费获得50积分开始。随时升级以获得更多生成次数和高级功能。
           </p>
         </div>
 
@@ -123,7 +147,7 @@ export function PricingPage({ onNavigate }: PricingPageProps) {
             >
               {plan.popular && (
                 <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-pink-600 text-white text-center py-2 text-sm font-bold">
-                  MOST POPULAR
+                  最受欢迎
                 </div>
               )}
 
@@ -135,12 +159,12 @@ export function PricingPage({ onNavigate }: PricingPageProps) {
                 <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
                 <div className="flex items-baseline gap-2 mb-6">
                   <span className="text-5xl font-bold text-gray-900">${plan.price}</span>
-                  <span className="text-gray-500">one-time</span>
+                  <span className="text-gray-500">一次性付费</span>
                 </div>
 
                 <div className="mb-6 px-4 py-3 bg-gradient-to-r from-blue-50 to-pink-50 rounded-xl">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-700 font-medium">Generation Credits</span>
+                    <span className="text-gray-700 font-medium">生成积分</span>
                     <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-pink-600 bg-clip-text text-transparent">
                       {plan.credits}
                     </span>
@@ -199,25 +223,6 @@ export function PricingPage({ onNavigate }: PricingPageProps) {
                   <p className="text-gray-600">{faq.a}</p>
                 </div>
               ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-16 text-center">
-          <div className="inline-flex items-center gap-8 px-8 py-6 bg-white rounded-2xl shadow-lg">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-gray-900">10,000+</div>
-              <div className="text-sm text-gray-600">幸福情侣</div>
-            </div>
-            <div className="w-px h-12 bg-gray-200" />
-            <div className="text-center">
-              <div className="text-3xl font-bold text-gray-900">500K+</div>
-              <div className="text-sm text-gray-600">生成照片</div>
-            </div>
-            <div className="w-px h-12 bg-gray-200" />
-            <div className="text-center">
-              <div className="text-3xl font-bold text-gray-900">4.9/5</div>
-              <div className="text-sm text-gray-600">客户评分</div>
             </div>
           </div>
         </div>

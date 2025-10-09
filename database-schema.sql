@@ -128,3 +128,58 @@ INSERT INTO templates (name, description, category, price_credits, sort_order, p
 ('Vintage Film', 'Nostalgic film photography look with warm grain', 'artistic', 10, 9, 'https://images.pexels.com/photos/1024967/pexels-photo-1024967.jpeg'),
 ('Royal Palace', 'Grand European palace interior with baroque architecture', 'classic', 12, 10, 'https://images.pexels.com/photos/2403251/pexels-photo-2403251.jpeg')
 ON CONFLICT DO NOTHING;
+-- Image likes for generated results
+CREATE TABLE IF NOT EXISTS image_likes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  generation_id uuid REFERENCES generations(id) ON DELETE CASCADE NOT NULL,
+  image_index integer NOT NULL,
+  image_type text NOT NULL DEFAULT 'preview', -- 'preview' | 'high_res'
+  created_at timestamptz DEFAULT now(),
+  UNIQUE(user_id, generation_id, image_index, image_type)
+);
+
+ALTER TABLE image_likes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own image likes" ON image_likes FOR SELECT TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own image likes" ON image_likes FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can delete own image likes" ON image_likes FOR DELETE TO authenticated USING (auth.uid() = user_id);
+
+-- Add column image_type if migrating from older schema
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'image_likes' AND column_name = 'image_type'
+  ) THEN
+    ALTER TABLE image_likes ADD COLUMN image_type text NOT NULL DEFAULT 'preview';
+  END IF;
+END $$;
+
+-- Image downloads tracking for analytics
+CREATE TABLE IF NOT EXISTS image_downloads (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  generation_id uuid REFERENCES generations(id) ON DELETE CASCADE NOT NULL,
+  image_index integer NOT NULL,
+  image_type text NOT NULL DEFAULT 'preview',
+  order_id uuid REFERENCES orders(id),
+  created_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE image_downloads ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can insert own downloads" ON image_downloads FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+CREATE INDEX IF NOT EXISTS idx_image_downloads_user ON image_downloads(user_id);
+CREATE INDEX IF NOT EXISTS idx_image_downloads_gen ON image_downloads(generation_id);
+
+-- Engagement view (likes + downloads) per user/generation
+CREATE OR REPLACE VIEW image_engagement_stats AS
+SELECT
+  g.user_id,
+  l.generation_id,
+  COUNT(DISTINCT CASE WHEN l.id IS NOT NULL THEN l.id END) AS likes_count,
+  COUNT(DISTINCT d.id) AS downloads_count
+FROM generations g
+LEFT JOIN image_likes l ON l.generation_id = g.id AND l.user_id = g.user_id
+LEFT JOIN image_downloads d ON d.generation_id = g.id AND d.user_id = g.user_id
+GROUP BY g.user_id, l.generation_id;

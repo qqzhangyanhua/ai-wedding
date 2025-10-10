@@ -1,12 +1,14 @@
-import { useState, useRef } from 'react';
-import { Upload, X, Check, Loader2, ArrowLeft, Image as ImageIcon, AlertCircle } from 'lucide-react';
+import { useState } from 'react';
+import { Loader2, ArrowLeft, Image as ImageIcon, Check } from 'lucide-react';
 import { Template } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Toast } from '../components/Toast';
 import { generateImage } from '@/lib/image';
 import NextImage from 'next/image';
-import { compressDataUrl } from '@/lib/image-compress';
+import { PhotoUploader } from '../components/PhotoUploader';
+import { GenerationNotification } from '../components/GenerationNotification';
+import { GeneratingTips } from '../components/GeneratingTips';
 
 interface CreatePageProps {
   onNavigate: (page: string) => void;
@@ -15,53 +17,36 @@ interface CreatePageProps {
 
 export function CreatePage({ onNavigate, selectedTemplate }: CreatePageProps) {
   const { profile, refreshProfile } = useAuth();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
   const [projectName, setProjectName] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationStage, setGenerationStage] = useState<'uploading' | 'analyzing' | 'generating' | 'completed' | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    for (const file of files) {
-      const dataUrl = await fileToDataUrl(file);
-      try {
-        const compressed = await compressDataUrl(dataUrl, { maxWidth: 1600, maxHeight: 1600, quality: 0.85, mimeType: 'image/jpeg' });
-        setUploadedPhotos(prev => [...prev, compressed]);
-      } catch {
-        setUploadedPhotos(prev => [...prev, dataUrl]);
-      }
-    }
-  };
-
-  function fileToDataUrl(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
-
-  const removePhoto = (index: number) => {
-    setUploadedPhotos(prev => prev.filter((_, i) => i !== index));
-  };
+  const [backgroundGenerationId, setBackgroundGenerationId] = useState<string | null>(null);
+  const [allowBackground, setAllowBackground] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [savedState, setSavedState] = useState<{ photos: string[]; projectName: string } | null>(null);
 
   const handleGenerate = async () => {
     if (uploadedPhotos.length < 5 || !profile || !selectedTemplate) return;
 
     setIsGenerating(true);
     setUploadProgress(0);
+    setGenerationStage('uploading');
+    setGenerationError(null);
+    
+    setSavedState({
+      photos: uploadedPhotos,
+      projectName: projectName,
+    });
 
     let generationId: string | null = null;
-    let interval: ReturnType<typeof setInterval> | null = null;
     try {
-      interval = setInterval(() => {
-        setUploadProgress(prev => Math.min(prev + 5, 90));
-      }, 200);
+      // 阶段1: 上传照片和创建项目（0-20%）
+      setGenerationStage('uploading');
+      setUploadProgress(5);
 
-      // 1) 创建项目
       const { data: project, error: projectError } = await supabase
         .from('projects')
         .insert({
@@ -74,8 +59,11 @@ export function CreatePage({ onNavigate, selectedTemplate }: CreatePageProps) {
         .single();
 
       if (projectError) throw projectError;
+      setUploadProgress(20);
 
-      // 2) 创建生成记录（pending）
+      // 阶段2: 分析照片（20-40%）
+      setGenerationStage('analyzing');
+      
       const { data: generation, error: generationError } = await supabase
         .from('generations')
         .insert({
@@ -91,7 +79,6 @@ export function CreatePage({ onNavigate, selectedTemplate }: CreatePageProps) {
       if (generationError) throw generationError;
       generationId = generation.id;
 
-      // 3) 扣减积分
       const { error: creditError } = await supabase
         .from('profiles')
         .update({ credits: profile.credits - selectedTemplate.price_credits })
@@ -100,14 +87,19 @@ export function CreatePage({ onNavigate, selectedTemplate }: CreatePageProps) {
       if (creditError) throw creditError;
 
       await refreshProfile();
+      setUploadProgress(40);
 
-      // 4) 调用后端图片生成 API（OpenAI 兼容）
+      // 阶段3: AI生成图片（40-90%）
+      setGenerationStage('generating');
+      setUploadProgress(50);
+
       const prompt = `${selectedTemplate.name}: ${selectedTemplate.description || ''} wedding portrait, high quality, cinematic lighting`;
-      // 请求 4 张预览图，返回 URL
       const items = await generateImage(prompt, { n: 4, size: '1024x1024', response_format: 'url' });
       const urls = items.map((i) => i.url).filter(Boolean) as string[];
 
-      // 5) 更新生成记录与项目状态
+      setUploadProgress(90);
+
+      // 阶段4: 保存结果（90-100%）
       const now = new Date().toISOString();
       const { error: genUpdateErr } = await supabase
         .from('generations')
@@ -121,35 +113,48 @@ export function CreatePage({ onNavigate, selectedTemplate }: CreatePageProps) {
         .eq('id', project.id);
       if (projUpdateErr) throw projUpdateErr;
 
-      if (interval) clearInterval(interval);
+      setGenerationStage('completed');
       setUploadProgress(100);
 
-      setToast({ message: '生成完成！即将跳转到结果页', type: 'success' });
-
-      setTimeout(() => {
-        // 跳转到结果详情页
-        window.location.href = `/results/${generation.id}`;
-      }, 800);
+      if (allowBackground) {
+        setBackgroundGenerationId(generation.id);
+        setToast({ message: '已添加到后台生成队列，可继续浏览其他页面', type: 'success' });
+        setIsGenerating(false);
+        setGenerationStage(null);
+      } else {
+        setToast({ message: '生成完成！即将跳转到结果页', type: 'success' });
+        setTimeout(() => {
+          window.location.href = `/results/${generation.id}`;
+        }, 800);
+      }
     } catch (error: unknown) {
       console.error('生成失败:', error);
-      // 标记为失败
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      
       try {
-        if (error instanceof Error && error.message.includes('生成失败')) {
-          // noop
-        }
         if (generationId) {
           await supabase
             .from('generations')
-            .update({ status: 'failed', error_message: String(error) })
+            .update({ status: 'failed', error_message: errorMessage })
             .eq('id', generationId);
         }
       } catch (persistErr) {
         console.error('生成失败后回写失败:', persistErr);
       }
-      setToast({ message: '生成失败，请重试', type: 'error' });
+      
+      setGenerationError(errorMessage);
+      setToast({ message: '生成失败，请查看详情并重试', type: 'error' });
       setIsGenerating(false);
-    } finally {
-      if (interval) clearInterval(interval);
+      setGenerationStage(null);
+    }
+  };
+
+  const handleRetry = () => {
+    if (savedState) {
+      setUploadedPhotos(savedState.photos);
+      setProjectName(savedState.projectName);
+      setGenerationError(null);
+      handleGenerate();
     }
   };
 
@@ -206,66 +211,12 @@ export function CreatePage({ onNavigate, selectedTemplate }: CreatePageProps) {
           </div>
 
           <div className="mb-8">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              上传照片 ({uploadedPhotos.length}/10)
-            </label>
-            <p className="text-sm text-gray-500 mb-4">
-              上传5-10张高质量照片，从不同角度清晰展现您的面部
-            </p>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-4">
-              {uploadedPhotos.map((photo, index) => (
-                <div key={index} className="relative aspect-square rounded-xl overflow-hidden group">
-                  <NextImage
-                    src={photo}
-                    alt={`Upload ${index + 1}`}
-                    fill
-                    className="object-cover"
-                    placeholder="blur"
-                    blurDataURL={photo}
-                    sizes="(max-width: 768px) 33vw, (max-width: 1200px) 20vw, 10vw"
-                  />
-                  <button
-                    onClick={() => removePhoto(index)}
-                    className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                  <div className="absolute bottom-2 right-2 p-1.5 bg-green-500 text-white rounded-full">
-                    <Check className="w-4 h-4" />
-                  </div>
-                </div>
-              ))}
-
-              {uploadedPhotos.length < 10 && (
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="aspect-square border-2 border-dashed border-gray-300 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all flex flex-col items-center justify-center gap-2 group"
-                >
-                  <Upload className="w-8 h-8 text-gray-400 group-hover:text-blue-500 transition-colors" />
-                  <span className="text-sm text-gray-500 group-hover:text-blue-500 font-medium">添加照片</span>
-                </button>
-              )}
-            </div>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleFileSelect}
-              className="hidden"
+            <PhotoUploader
+              photos={uploadedPhotos}
+              onChange={setUploadedPhotos}
+              maxPhotos={10}
+              minPhotos={5}
             />
-
-            {uploadedPhotos.length < 5 && (
-              <div className="flex items-start gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
-                <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-yellow-800">
-                  <p className="font-medium mb-1">请上传至少5张照片才能继续</p>
-                  <p>更多照片带来更好效果。请确保照片清晰、光线良好，并从不同角度展示您的面部。</p>
-                </div>
-              </div>
-            )}
           </div>
 
           {profile && profile.credits < (selectedTemplate?.price_credits || 10) && (
@@ -279,36 +230,85 @@ export function CreatePage({ onNavigate, selectedTemplate }: CreatePageProps) {
             </div>
           )}
 
-          <button
-            onClick={handleGenerate}
-            disabled={!canGenerate || isGenerating}
-            className="w-full py-4 bg-gradient-to-r from-blue-600 to-pink-600 text-white rounded-xl hover:from-blue-700 hover:to-pink-700 transition-all font-medium text-lg shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                正在生成魔法...
-              </>
-            ) : (
-              <>
-                <ImageIcon className="w-5 h-5" />
-                生成婚纱照
-              </>
-            )}
-          </button>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+              <input
+                type="checkbox"
+                id="allowBackground"
+                checked={allowBackground}
+                onChange={(e) => setAllowBackground(e.target.checked)}
+                className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+              />
+              <label htmlFor="allowBackground" className="text-sm text-gray-700 cursor-pointer flex-1">
+                后台生成（可继续浏览其他页面，生成完成后通知您）
+              </label>
+            </div>
+
+            <button
+              onClick={handleGenerate}
+              disabled={!canGenerate || isGenerating}
+              className="w-full py-4 bg-gradient-to-r from-blue-600 to-pink-600 text-white rounded-xl hover:from-blue-700 hover:to-pink-700 transition-all font-medium text-lg shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  正在生成魔法...
+                </>
+              ) : (
+                <>
+                  <ImageIcon className="w-5 h-5" />
+                  生成婚纱照
+                </>
+              )}
+            </button>
+          </div>
+
+          {generationError && savedState && (
+            <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <h4 className="text-sm font-bold text-red-900 mb-1">生成失败</h4>
+                  <p className="text-sm text-red-700">{generationError}</p>
+                  <p className="text-xs text-red-600 mt-2">已保留您的照片和项目信息，可以直接重试</p>
+                </div>
+              </div>
+              <button
+                onClick={handleRetry}
+                className="w-full px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all font-medium flex items-center justify-center gap-2"
+              >
+                <Loader2 className="w-5 h-5" />
+                重新生成
+              </button>
+            </div>
+          )}
 
           {isGenerating && (
             <div className="mt-6">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">正在处理您的照片...</span>
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                  <span className="text-sm font-medium text-gray-700">
+                    {generationStage === 'uploading' && '上传照片中...'}
+                    {generationStage === 'analyzing' && '分析面部特征中...'}
+                    {generationStage === 'generating' && 'AI生成图片中...'}
+                    {generationStage === 'completed' && '生成完成！'}
+                  </span>
+                </div>
                 <span className="text-sm font-medium text-blue-600">{uploadProgress}%</span>
               </div>
               <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-blue-600 to-pink-600 transition-all duration-300"
+                  className="h-full bg-gradient-to-r from-blue-600 to-pink-600 transition-all duration-500"
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>
+              <p className="text-xs text-gray-500 mt-2">
+                {generationStage === 'uploading' && '正在上传您的照片到云端...'}
+                {generationStage === 'analyzing' && '正在分析您的面部特征，这需要一些时间...'}
+                {generationStage === 'generating' && '正在使用AI生成您的婚纱照，通常需要1-2分钟...'}
+                {generationStage === 'completed' && '已完成所有处理，即将跳转！'}
+              </p>
+              <GeneratingTips visible={true} />
             </div>
           )}
         </div>
@@ -344,6 +344,13 @@ export function CreatePage({ onNavigate, selectedTemplate }: CreatePageProps) {
           message={toast.message}
           type={toast.type}
           onClose={() => setToast(null)}
+        />
+      )}
+
+      {backgroundGenerationId && (
+        <GenerationNotification
+          generationId={backgroundGenerationId}
+          onDismiss={() => setBackgroundGenerationId(null)}
         />
       )}
     </div>

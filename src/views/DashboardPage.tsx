@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Camera, Clock, CheckCircle, AlertCircle, Plus, ArrowRight, Sparkles, Loader2, Heart } from 'lucide-react';
 import Image from 'next/image';
 import { getStatusLabel, getStatusVisual } from '../lib/status';
@@ -8,6 +8,10 @@ import { CardSkeleton } from '@/components/ui/card-skeleton';
 import { useAuth } from '../contexts/AuthContext';
 import { useProjects } from '../hooks/useProjects';
 import { useEngagementStats } from '../hooks/useEngagementStats';
+import { ProjectFilters, FilterState } from '../components/ProjectFilters';
+import { ProjectActionsMenu } from '../components/ProjectActionsMenu';
+import { ProjectProgress } from '../components/ProjectProgress';
+import { ProjectStatsChart } from '../components/ProjectStatsChart';
 
 interface DashboardPageProps {
   onNavigate: (page: string, template?: Template, generationId?: string) => void;
@@ -18,6 +22,12 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
   const { projects, loading } = useProjects();
   const [activeTab, setActiveTab] = useState<'all' | 'completed' | 'processing'>('all');
   const { likes, downloads } = useEngagementStats();
+  const [filters, setFilters] = useState<FilterState>({
+    searchQuery: '',
+    status: 'all',
+    dateRange: 'all',
+    templateName: '',
+  });
 
   // 约束选项类型，避免类型断言
   const tabs: { id: typeof activeTab; label: string; count: number }[] = [
@@ -26,12 +36,60 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
     { id: 'processing', label: '处理中', count: projects.filter(p => p.generation?.status === 'processing' || p.generation?.status === 'pending').length },
   ];
 
-  const filteredProjects = projects.filter(project => {
-    if (activeTab === 'all') return true;
-    if (activeTab === 'completed') return project.generation?.status === 'completed';
-    if (activeTab === 'processing') return project.generation?.status === 'processing' || project.generation?.status === 'pending';
-    return false;
-  });
+  // 获取所有模板名称
+  const templateNames = useMemo(() => {
+    const names = new Set<string>();
+    projects.forEach(p => {
+      if (p.template?.name) names.add(p.template.name);
+    });
+    return Array.from(names).sort();
+  }, [projects]);
+
+  // 应用筛选逻辑
+  const filteredProjects = useMemo(() => {
+    return projects.filter(project => {
+      // Tab筛选
+      if (activeTab === 'completed' && project.generation?.status !== 'completed') return false;
+      if (activeTab === 'processing' && 
+          !(project.generation?.status === 'processing' || project.generation?.status === 'pending')) return false;
+
+      // 搜索关键词
+      if (filters.searchQuery) {
+        const query = filters.searchQuery.toLowerCase();
+        const matchName = project.name.toLowerCase().includes(query);
+        const matchTemplate = project.template?.name?.toLowerCase().includes(query);
+        if (!matchName && !matchTemplate) return false;
+      }
+
+      // 状态筛选
+      if (filters.status !== 'all') {
+        if (filters.status === 'processing') {
+          if (!(project.generation?.status === 'processing' || project.generation?.status === 'pending')) return false;
+        } else if (project.generation?.status !== filters.status) {
+          return false;
+        }
+      }
+
+      // 日期范围筛选
+      if (filters.dateRange !== 'all') {
+        const now = new Date();
+        const createdAt = new Date(project.created_at);
+        const diffMs = now.getTime() - createdAt.getTime();
+        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+        if (filters.dateRange === 'today' && diffDays > 1) return false;
+        if (filters.dateRange === 'week' && diffDays > 7) return false;
+        if (filters.dateRange === 'month' && diffDays > 30) return false;
+      }
+
+      // 模板筛选
+      if (filters.templateName && project.template?.name !== filters.templateName) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [projects, activeTab, filters]);
 
   const getTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -117,7 +175,12 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">我的项目</h2>
-            <p className="text-gray-600 mt-1">{projects.length} 个项目总计</p>
+            <p className="text-gray-600 mt-1">
+              {projects.length} 个项目总计
+              {filteredProjects.length < projects.length && (
+                <span className="text-blue-600"> • {filteredProjects.length} 个匹配筛选条件</span>
+              )}
+            </p>
           </div>
 
           <button
@@ -128,6 +191,13 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
             创建新项目
           </button>
         </div>
+
+        {/* 搜索和筛选 */}
+        <ProjectFilters
+          filters={filters}
+          onFiltersChange={setFilters}
+          templateNames={templateNames}
+        />
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
           <div className="flex border-b border-gray-200">
@@ -192,8 +262,45 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
 
-                    <div className="absolute top-3 right-3 flex items-center gap-2 px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-full">
-                      {renderStatus(project.generation?.status || project.status)}
+                    <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-full">
+                        {renderStatus(project.generation?.status || project.status)}
+                      </div>
+                      
+                      <div className="bg-white/90 backdrop-blur-sm rounded-lg">
+                        <ProjectActionsMenu
+                          projectId={project.id}
+                          projectName={project.name}
+                          status={project.generation?.status || project.status}
+                          onView={() => project.generation?.id && onNavigate('results', undefined, project.generation.id)}
+                          onEdit={() => {
+                            // TODO: 实现编辑功能
+                            console.log('编辑项目:', project.id);
+                          }}
+                          onDelete={async () => {
+                            if (window.confirm(`确定要删除项目"${project.name}"吗？此操作不可撤销。`)) {
+                              // TODO: 实现删除功能
+                              console.log('删除项目:', project.id);
+                            }
+                          }}
+                          onRegenerate={() => {
+                            // TODO: 实现重新生成功能
+                            console.log('重新生成:', project.id);
+                          }}
+                          onShare={() => {
+                            if (project.generation?.id) {
+                              const url = `${window.location.origin}/results/${project.generation.id}`;
+                              navigator.clipboard.writeText(url).then(() => {
+                                alert('分享链接已复制到剪贴板');
+                              });
+                            }
+                          }}
+                          onDownload={() => {
+                            // TODO: 实现批量下载功能
+                            console.log('下载全部:', project.id);
+                          }}
+                        />
+                      </div>
                     </div>
 
                     {project.generation?.status === 'completed' && (
@@ -211,6 +318,13 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
                       {project.name}
                     </h3>
                     <p className="text-sm text-gray-600 mb-4">模板：{project.template?.name || '未选择'}</p>
+
+                    {/* 处理中项目显示进度条 */}
+                    {(project.generation?.status === 'processing' || project.generation?.status === 'pending') && project.generation?.id && (
+                      <div className="mb-4">
+                        <ProjectProgress generationId={project.generation.id} />
+                      </div>
+                    )}
 
                     <div className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-4">
@@ -232,6 +346,14 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* 统计图表 */}
+          {projects.length > 0 && (
+            <div className="mt-12">
+              <h3 className="text-xl font-bold text-gray-900 mb-6">数据统计</h3>
+              <ProjectStatsChart projects={projects} />
             </div>
           )}
 

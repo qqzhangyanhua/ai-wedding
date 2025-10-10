@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Download, Heart, Share2, ArrowLeft, Sparkles, Lock, Check, X } from 'lucide-react';
+import { Download, Heart, Share2, ArrowLeft, Sparkles, Lock, Check, X, Repeat, TrendingUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '../contexts/AuthContext';
 import { useImageLikes } from '../hooks/useImageLikes';
+import { ImageCompareSlider } from '../components/ImageCompareSlider';
+import { recommendPackage, getBestValue, calculateSavings } from '@/lib/pricing-recommender';
+import { rateImages } from '@/lib/image-rating';
 
 interface ResultsPageProps {
   onNavigate: (page: string) => void;
@@ -19,6 +22,7 @@ interface Generation {
   completed_at: string;
   project: {
     name: string;
+    uploaded_photos: string[];
   };
   template: {
     name: string;
@@ -62,7 +66,7 @@ export function ResultsPage({ onNavigate, generationId }: ResultsPageProps) {
           .from('generations')
           .select(`
             *,
-            project:projects(name),
+            project:projects(name, uploaded_photos),
             template:templates(name)
           `)
           .eq('id', generationId)
@@ -85,6 +89,10 @@ export function ResultsPage({ onNavigate, generationId }: ResultsPageProps) {
     ? generation.high_res_images
     : [] as string[];
   const currentImages = tab === 'preview' ? resultsPreview : resultsHigh;
+
+  const recommendedPackages = recommendPackage(selectedImages.size, currentImages.length);
+  const bestValue = getBestValue(selectedImages.size, currentImages.length);
+  const imageRatings = rateImages(currentImages);
 
   const toggleImageSelection = (index: number) => {
     const newSelection = new Set(selectedImages);
@@ -192,7 +200,10 @@ export function ResultsPage({ onNavigate, generationId }: ResultsPageProps) {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {currentImages.map((url, index) => (
+            {currentImages.map((url, index) => {
+              const rating = imageRatings.get(index);
+              
+              return (
               <div
                 key={index}
                 className="relative aspect-[3/4] rounded-2xl overflow-hidden group cursor-pointer"
@@ -241,9 +252,38 @@ export function ResultsPage({ onNavigate, generationId }: ResultsPageProps) {
             )}
           </div>
 
-                <div className="absolute inset-0 flex items-center justify-center opacity-50 pointer-events-none">
-                  <div className="text-white text-4xl font-bold opacity-20">预览</div>
-                </div>
+                {/* AI评分标签 */}
+                {rating && rating.badges.length > 0 && (
+                  <div className="absolute bottom-3 left-3 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                    {rating.badges.map((badge, idx) => (
+                      <div 
+                        key={idx}
+                        className="px-2 py-1 bg-gradient-to-r from-yellow-500/90 to-orange-500/90 backdrop-blur-sm text-white text-xs font-bold rounded-lg shadow-lg"
+                      >
+                        {badge}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* 增强水印显示 */}
+                {tab === 'preview' && (
+                  <>
+                    {/* 对角线水印 */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
+                      <div 
+                        className="text-white text-6xl font-bold opacity-10 whitespace-nowrap"
+                        style={{ transform: 'rotate(-45deg) scale(1.5)' }}
+                      >
+                        PREVIEW • 预览 • PREVIEW
+                      </div>
+                    </div>
+                    {/* 边角标签 */}
+                    <div className="absolute top-0 left-0 px-4 py-2 bg-gradient-to-br from-blue-600/80 to-pink-600/80 backdrop-blur-sm text-white text-xs font-bold rounded-br-xl">
+                      预览版
+                    </div>
+                  </>
+                )}
 
                 <div className="absolute bottom-3 left-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
                   <div className="flex items-center gap-2">
@@ -268,72 +308,65 @@ export function ResultsPage({ onNavigate, generationId }: ResultsPageProps) {
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-          <h3 className="font-bold text-gray-900 mb-4">价格选项</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white rounded-xl p-6 border-2 border-transparent hover:border-blue-500 transition-all cursor-pointer">
-              <div className="text-3xl font-bold text-gray-900 mb-2">$19.99</div>
-              <div className="text-gray-600 mb-4">基础套餐</div>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-green-600" />
-                  20张高清图像
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-green-600" />
-                  无水印
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-green-600" />
-                  立即下载
-                </li>
-              </ul>
-            </div>
-
-            <div className="bg-gradient-to-br from-blue-600 to-pink-600 text-white rounded-xl p-6 border-2 border-blue-600 shadow-lg">
-              <div className="inline-block px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-bold mb-3">
-                最受欢迎
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-gray-900">价格选项</h3>
+            {selectedImages.size > 0 && bestValue && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                <TrendingUp className="w-4 h-4" />
+                为您推荐：{bestValue.name}
               </div>
-              <div className="text-3xl font-bold mb-2">$49.99</div>
-              <div className="text-blue-100 mb-4">完整套餐</div>
-              <ul className="space-y-2 text-sm text-blue-50">
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4" />
-                  100张高清图像
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4" />
-                  所有格式
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4" />
-                  优先支持
-                </li>
-              </ul>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 border-2 border-transparent hover:border-blue-500 transition-all cursor-pointer">
-              <div className="text-3xl font-bold text-gray-900 mb-2">$99.99</div>
-              <div className="text-gray-600 mb-4">高级套餐</div>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-green-600" />
-                  全部 {mockResults.length} 张图像
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-green-600" />
-                  包含原始文件
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-green-600" />
-                  商业许可
-                </li>
-              </ul>
-            </div>
+            )}
+          </div>
+          {selectedImages.size > 0 && (
+            <p className="text-sm text-gray-600 mb-4">
+              已选择 {selectedImages.size} 张图片 • 根据您的选择智能推荐最优惠套餐
+            </p>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {recommendedPackages.slice(0, 3).map((pkg) => {
+              const isRecommended = pkg.recommended;
+              const savings = selectedImages.size > 0 ? calculateSavings(selectedImages.size, pkg.price) : 0;
+              
+              return (
+                <div
+                  key={pkg.id}
+                  className={`rounded-xl p-6 border-2 transition-all cursor-pointer ${
+                    isRecommended
+                      ? 'bg-gradient-to-br from-blue-600 to-pink-600 text-white border-blue-600 shadow-lg'
+                      : 'bg-white text-gray-900 border-transparent hover:border-blue-500'
+                  }`}
+                >
+                  {isRecommended && (
+                    <div className="inline-block px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-bold mb-3">
+                      推荐
+                    </div>
+                  )}
+                  <div className="text-3xl font-bold mb-2">${pkg.price}</div>
+                  <div className={`mb-4 ${isRecommended ? 'text-blue-100' : 'text-gray-600'}`}>
+                    {pkg.name}
+                  </div>
+                  {savings > 0 && (
+                    <div className={`text-sm font-medium mb-3 ${isRecommended ? 'text-green-200' : 'text-green-600'}`}>
+                      节省 ${savings}
+                    </div>
+                  )}
+                  <ul className={`space-y-2 text-sm ${isRecommended ? 'text-blue-50' : 'text-gray-600'}`}>
+                    {pkg.features.map((feature, idx) => (
+                      <li key={idx} className="flex items-center gap-2">
+                        <Check className="w-4 h-4 flex-shrink-0" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -352,25 +385,32 @@ export function ResultsPage({ onNavigate, generationId }: ResultsPageProps) {
           onIndexChange={(i) => setLightboxIndex(i)}
           generationId={generationId}
           imageType={tab}
+          originalPhotos={generation?.project?.uploaded_photos || []}
         />
       )}
     </div>
   );
 }
 
-function Lightbox({ images, index, onClose, onIndexChange, liked, onToggleLike, generationId, imageType = 'preview' }: { images: string[]; index: number; onClose: () => void; onIndexChange: (i: number) => void; liked: Set<number>; onToggleLike: (i: number) => void; generationId?: string; imageType?: 'preview' | 'high_res'; }) {
-  // 键盘导航：Esc 关闭，←/→ 切换
+function Lightbox({ images, index, onClose, onIndexChange, liked, onToggleLike, generationId, imageType = 'preview', originalPhotos = [] }: { images: string[]; index: number; onClose: () => void; onIndexChange: (i: number) => void; liked: Set<number>; onToggleLike: (i: number) => void; generationId?: string; imageType?: 'preview' | 'high_res'; originalPhotos?: string[]; }) {
+  const [compareMode, setCompareMode] = useState(false);
+  
+  // 键盘导航：Esc 关闭，←/→ 切换，C切换对比模式
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
       if (e.key === 'ArrowRight') onIndexChange((index + 1) % images.length);
       if (e.key === 'ArrowLeft') onIndexChange((index - 1 + images.length) % images.length);
+      if (e.key === 'c' || e.key === 'C') {
+        if (originalPhotos.length > 0) setCompareMode(prev => !prev);
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [images.length, index, onClose, onIndexChange, onToggleLike]);
+  }, [images.length, index, onClose, onIndexChange, originalPhotos.length]);
 
   const current = images[index];
+  const originalPhoto = originalPhotos[index] || originalPhotos[0];
 
   const toPrev = (e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -409,19 +449,45 @@ function Lightbox({ images, index, onClose, onIndexChange, liked, onToggleLike, 
         ‹
       </button>
       <div className="relative w-full h-full max-w-6xl max-h-[85vh]">
-        <Image
-          src={current}
-          alt="预览"
-          fill
-          className="object-contain"
-          sizes="100vw"
-          onClick={(e) => e.stopPropagation()}
-        />
-        <div className="absolute inset-0 flex items-center justify-center opacity-50 pointer-events-none">
-          <div className="text-white text-6xl font-bold opacity-20">预览</div>
-        </div>
+        {compareMode && originalPhoto ? (
+          <div onClick={(e) => e.stopPropagation()}>
+            <ImageCompareSlider
+              beforeImage={originalPhoto}
+              afterImage={current}
+              beforeLabel="原图"
+              afterLabel="AI生成"
+            />
+          </div>
+        ) : (
+          <>
+            <Image
+              src={current}
+              alt="预览"
+              fill
+              className="object-contain"
+              sizes="100vw"
+              onClick={(e) => e.stopPropagation()}
+            />
+            {/* 增强水印 - Lightbox版本 */}
+            {imageType === 'preview' && (
+              <>
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
+                  <div 
+                    className="text-white text-8xl font-bold opacity-10 whitespace-nowrap"
+                    style={{ transform: 'rotate(-45deg)' }}
+                  >
+                    PREVIEW • 预览 • PREVIEW
+                  </div>
+                </div>
+                <div className="absolute top-8 left-8 px-6 py-3 bg-gradient-to-br from-blue-600/80 to-pink-600/80 backdrop-blur-sm text-white text-sm font-bold rounded-xl">
+                  预览版 • 购买后无水印
+                </div>
+              </>
+            )}
+          </>
+        )}
       </div>
-      {/* 底部操作条：点赞/下载/分享 */}
+      {/* 底部操作条：点赞/下载/分享/对比 */}
       <div className="absolute bottom-6 left-0 right-0 flex items-center justify-center gap-3">
         <button
           onClick={(e) => { e.stopPropagation(); onToggleLike(index); }}
@@ -462,6 +528,15 @@ function Lightbox({ images, index, onClose, onIndexChange, liked, onToggleLike, 
           <Share2 className="w-5 h-5" />
           复制链接
         </button>
+        {originalPhotos.length > 0 && (
+          <button
+            onClick={(e) => { e.stopPropagation(); setCompareMode(prev => !prev); }}
+            className={`px-4 py-2 rounded-lg transition-all flex items-center gap-2 ${compareMode ? 'bg-blue-600 text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}
+          >
+            <Repeat className="w-5 h-5" />
+            {compareMode ? '退出对比' : '对比原图'}
+          </button>
+        )}
       </div>
 
       {/* 左右切换 */}

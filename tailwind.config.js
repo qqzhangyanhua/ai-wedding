@@ -4,15 +4,39 @@ module.exports = {
   content: [
     './src/**/*.{js,ts,jsx,tsx}',
     './app/**/*.{js,ts,jsx,tsx}',
+    './components/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
     extend: {
+      fontFamily: {
+        display: ['var(--font-cormorant)', 'Cormorant', 'serif'],
+        body: ['var(--font-inter)', 'Inter', 'sans-serif'],
+        sans: ['var(--font-inter)', 'Inter', 'sans-serif'],
+      },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)"
+        sm: "var(--radius-sm)",
+        md: "var(--radius-md)",
+        lg: "var(--radius-lg)",
+        xl: "var(--radius-xl)",
+        "2xl": "var(--radius-2xl)",
+        full: "9999px"
       },
       colors: {
+        // Romantic Neutrals
+        ivory: "hsl(var(--ivory))",
+        champagne: "hsl(var(--champagne))",
+        blush: "hsl(var(--blush))",
+        sage: "hsl(var(--sage))",
+        stone: "hsl(var(--stone))",
+
+        // Refined Elegance
+        "rose-gold": "hsl(var(--rose-gold))",
+        "dusty-rose": "hsl(var(--dusty-rose))",
+        terracotta: "hsl(var(--terracotta))",
+        navy: "hsl(var(--navy))",
+        forest: "hsl(var(--forest))",
+
+        // shadcn compatibility
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {
@@ -46,6 +70,24 @@ module.exports = {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))"
+      },
+      boxShadow: {
+        sm: "var(--shadow-sm)",
+        md: "var(--shadow-md)",
+        lg: "var(--shadow-lg)",
+        xl: "var(--shadow-xl)",
+        "2xl": "var(--shadow-2xl)",
+        inner: "var(--shadow-inner)",
+        glow: "var(--shadow-glow)",
+      },
+      transitionDuration: {
+        '400': '400ms',
+        '600': '600ms',
+        '700': '700ms',
+      },
+      scale: {
+        '98': '0.98',
+        '102': '1.02',
       }
     }
   },

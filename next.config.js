@@ -8,8 +8,29 @@ const nextConfig = {
     ignoreBuildErrors: false,
   },
   images: {
-    domains: ['localhost', 'images.pexels.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.pexels.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.supabase.co',
+        pathname: '/storage/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'oaidalleapiprodscus.blob.core.windows.net',
+        pathname: '/**',
+      },
+    ],
+    domains: ['localhost'],
   },
+  // 启用SWC压缩
+  swcMinify: true,
+  // 压缩响应
+  compress: true,
 };
 
 module.exports = nextConfig;

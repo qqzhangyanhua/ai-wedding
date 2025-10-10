@@ -50,27 +50,27 @@ export function ProjectFilters({ filters, onFiltersChange, templateNames }: Proj
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+    <div className="bg-ivory rounded-md shadow-sm border border-stone/10 p-4 mb-6">
       <div className="flex flex-col gap-4">
         {/* 搜索栏 */}
         <div className="flex items-center gap-3">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone" />
             <input
               type="text"
               placeholder="搜索项目名称或模板..."
               value={filters.searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2.5 border border-stone/20 bg-champagne rounded-md focus:outline-none focus:ring-2 focus:ring-dusty-rose/30 focus:border-dusty-rose transition-all"
             />
           </div>
-          
+
           <button
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className={`px-4 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-all ${
+            className={`px-4 py-2.5 rounded-md font-medium flex items-center gap-2 transition-all duration-300 ${
               showAdvanced || hasActiveFilters
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-gradient-to-r from-rose-gold to-dusty-rose text-ivory shadow-md'
+                : 'bg-champagne text-navy hover:bg-ivory'
             }`}
           >
             <Filter className="w-5 h-5" />
@@ -80,7 +80,7 @@ export function ProjectFilters({ filters, onFiltersChange, templateNames }: Proj
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
-              className="px-4 py-2.5 bg-red-50 text-red-600 rounded-lg font-medium flex items-center gap-2 hover:bg-red-100 transition-all"
+              className="px-4 py-2.5 bg-destructive/10 text-destructive rounded-md font-medium flex items-center gap-2 hover:bg-destructive/20 transition-all duration-300"
             >
               <X className="w-5 h-5" />
               清除
@@ -90,14 +90,14 @@ export function ProjectFilters({ filters, onFiltersChange, templateNames }: Proj
 
         {/* 高级筛选选项 */}
         {showAdvanced && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-200">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-stone/10">
             {/* 状态筛选 */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">项目状态</label>
+              <label className="block text-sm font-medium text-navy mb-2">项目状态</label>
               <select
                 value={filters.status}
                 onChange={(e) => handleStatusChange(e.target.value as FilterState['status'])}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-stone/20 bg-champagne rounded-md focus:outline-none focus:ring-2 focus:ring-dusty-rose/30 focus:border-dusty-rose transition-all text-navy"
               >
                 <option value="all">全部状态</option>
                 <option value="completed">已完成</option>
@@ -108,14 +108,14 @@ export function ProjectFilters({ filters, onFiltersChange, templateNames }: Proj
 
             {/* 日期范围 */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+              <label className="block text-sm font-medium text-navy mb-2 flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
                 创建时间
               </label>
               <select
                 value={filters.dateRange}
                 onChange={(e) => handleDateRangeChange(e.target.value as FilterState['dateRange'])}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-stone/20 bg-champagne rounded-md focus:outline-none focus:ring-2 focus:ring-dusty-rose/30 focus:border-dusty-rose transition-all text-navy"
               >
                 <option value="all">全部时间</option>
                 <option value="today">今天</option>
@@ -126,11 +126,11 @@ export function ProjectFilters({ filters, onFiltersChange, templateNames }: Proj
 
             {/* 模板筛选 */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">使用模板</label>
+              <label className="block text-sm font-medium text-navy mb-2">使用模板</label>
               <select
                 value={filters.templateName}
                 onChange={(e) => handleTemplateChange(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-stone/20 bg-champagne rounded-md focus:outline-none focus:ring-2 focus:ring-dusty-rose/30 focus:border-dusty-rose transition-all text-navy"
               >
                 <option value="">全部模板</option>
                 {templateNames.map((name) => (

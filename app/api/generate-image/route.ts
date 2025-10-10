@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { GenerateImageSchema, validateData } from '@/lib/validations';
 
 // 可选：如需运行在 Edge 环境，取消注释
 export const runtime = 'edge';
@@ -17,14 +18,6 @@ const RL_LIMIT = 5; // 每分钟 5 次
 type RLRecord = { windowStart: number; count: number };
 // Edge 运行时下的全局内存（同区域生效）
 const rateBucket = new Map<string, RLRecord>();
-
-type GeneratePayload = {
-  prompt: string;
-  n?: number;
-  size?: '256x256' | '512x512' | '1024x1024' | string;
-  response_format?: 'url' | 'b64_json';
-  model?: string; // 允许按需覆盖
-};
 
 export async function POST(req: Request) {
   try {
@@ -71,30 +64,27 @@ export async function POST(req: Request) {
       rateBucket.set(userId, rec);
     }
 
-    const body = (await req.json()) as GeneratePayload;
-    const { prompt, n = 1, size = '1024x1024', response_format = 'url', model } = body || {};
+    const body = await req.json();
 
-    if (!prompt || typeof prompt !== 'string') {
-      return NextResponse.json({ error: 'Invalid prompt' }, { status: 400 });
-    }
-    const safePrompt = prompt.trim();
-    if (safePrompt.length > 800) {
-      return NextResponse.json({ error: 'Prompt too long' }, { status: 400 });
+    // 使用Zod验证输入
+    const validation = validateData(GenerateImageSchema, body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: validation.error },
+        { status: 400 }
+      );
     }
 
-    const safeN = Math.max(1, Math.min(8, Number(n) || 1));
-    const allowedSizes = new Set(['256x256', '512x512', '1024x1024']);
-    const safeSize = allowedSizes.has(size) ? size : '1024x1024';
-    const safeResponse = response_format === 'b64_json' ? 'b64_json' : 'url';
+    const { prompt, n, size, response_format, model } = validation.data;
 
     const endpoint = `${OPENAI_BASE_URL.replace(/\/$/, '')}/v1/images/generations`;
 
     const payload = {
       model: model || OPENAI_IMAGE_MODEL,
-      prompt: safePrompt,
-      n: safeN,
-      size: safeSize,
-      response_format: safeResponse,
+      prompt: prompt.trim(),
+      n,
+      size,
+      response_format,
     };
 
     const res = await fetch(endpoint, {
@@ -116,7 +106,16 @@ export async function POST(req: Request) {
     }
 
     // 标准 OpenAI 兼容：返回 data 数组，元素含 url 或 b64_json
-    return NextResponse.json({ data }, { headers: { 'Cache-Control': 'no-store' } });
+    return NextResponse.json(
+      { data },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      }
+    );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unexpected error';
     return NextResponse.json({ error: message }, { status: 500 });

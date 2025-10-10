@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Camera, Clock, CheckCircle, AlertCircle, Plus, ArrowRight, Sparkles, Loader2, Heart } from 'lucide-react';
+import { Camera, Clock, CheckCircle, AlertCircle, Plus, ArrowRight, Sparkles, Loader2, Heart, Download } from 'lucide-react';
 import Image from 'next/image';
 import { getStatusLabel, getStatusVisual } from '../lib/status';
 import { Template } from '../types/database';
@@ -12,6 +12,11 @@ import { ProjectFilters, FilterState } from '../components/ProjectFilters';
 import { ProjectActionsMenu } from '../components/ProjectActionsMenu';
 import { ProjectProgress } from '../components/ProjectProgress';
 import { ProjectStatsChart } from '../components/ProjectStatsChart';
+import { FadeIn, GlassCard } from '@/components/react-bits';
+import { StatCard } from '../components/StatCard';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { Toast } from '../components/Toast';
+import { supabase } from '../lib/supabase';
 
 interface DashboardPageProps {
   onNavigate: (page: string, template?: Template, generationId?: string) => void;
@@ -19,7 +24,7 @@ interface DashboardPageProps {
 
 export function DashboardPage({ onNavigate }: DashboardPageProps) {
   const { profile } = useAuth();
-  const { projects, loading } = useProjects();
+  const { projects, loading, refreshProjects } = useProjects();
   const [activeTab, setActiveTab] = useState<'all' | 'completed' | 'processing'>('all');
   const { likes, downloads } = useEngagementStats();
   const [filters, setFilters] = useState<FilterState>({
@@ -28,6 +33,8 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
     dateRange: 'all',
     templateName: '',
   });
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   // 约束选项类型，避免类型断言
   const tabs: { id: typeof activeTab; label: string; count: number }[] = [
@@ -103,6 +110,25 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
     return `${Math.floor(seconds / 604800)}周前`;
   };
 
+  const handleDeleteProject = async (projectId: string) => {
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', projectId);
+
+      if (error) throw error;
+
+      setToast({ message: '项目已删除', type: 'success' });
+      await refreshProjects();
+    } catch (error) {
+      console.error('删除项目失败:', error);
+      setToast({ message: '删除失败，请重试', type: 'error' });
+    } finally {
+      setDeleteConfirm(null);
+    }
+  };
+
   const renderStatus = (status: string) => {
     const allowed = ['draft', 'processing', 'completed', 'failed', 'pending'] as const;
     type AllowedStatus = typeof allowed[number];
@@ -116,81 +142,61 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
     return (
       <>
         <Icon className={`w-5 h-5 ${colorClass} ${spin ? 'animate-spin' : ''}`} />
-        <span className="text-sm font-medium text-gray-900">{label}</span>
+        <span className="text-sm font-medium text-navy">{label}</span>
       </>
     );
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
+    <div className="min-h-screen bg-gradient-to-b from-champagne to-ivory py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-gradient-to-r from-blue-600 to-pink-600 rounded-2xl p-8 text-white mb-8">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <FadeIn delay={0.1}>
+          <div className="mb-8 space-y-6">
             <div>
-              <h1 className="text-3xl font-bold mb-2">欢迎回来，{profile?.full_name || '亲'}！</h1>
-              <p className="text-blue-100">管理您的婚纱照项目和生成作品</p>
+              <h1 className="text-3xl font-display font-medium text-navy mb-2">欢迎回来，{profile?.full_name || '亲'}！</h1>
+              <p className="text-stone">管理您的婚纱照项目和生成作品</p>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <div className="px-6 py-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
-                <div className="flex items-center gap-3">
-                  <Sparkles className="w-6 h-6" />
-                  <div>
-                    <div className="text-2xl font-bold">{profile?.credits || 0}</div>
-                    <div className="text-sm text-blue-100">剩余积分</div>
-                  </div>
-                </div>
-              </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard icon={Sparkles} label="剩余积分" value={profile?.credits || 0} color="rose-gold" />
+              <StatCard icon={Heart} label="累计收藏" value={likes} color="dusty-rose" />
+              <StatCard icon={Download} label="累计下载" value={downloads} color="navy" />
+              <StatCard icon={CheckCircle} label="完成项目" value={projects.filter(p => p.generation?.status === 'completed').length} color="forest" />
+            </div>
 
-              <div className="px-6 py-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
-                <div className="flex items-center gap-3">
-                  <Heart className="w-6 h-6" />
-                  <div>
-                    <div className="text-2xl font-bold">{likes}</div>
-                    <div className="text-sm text-blue-100">累计收藏</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="px-6 py-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
-                <div className="flex items-center gap-3">
-                  <Camera className="w-6 h-6" />
-                  <div>
-                    <div className="text-2xl font-bold">{downloads}</div>
-                    <div className="text-sm text-blue-100">累计下载</div>
-                  </div>
-                </div>
-              </div>
-
+            <div className="flex justify-end">
               <button
                 onClick={() => onNavigate('pricing')}
-                className="px-6 py-3 bg-white text-blue-600 rounded-xl hover:bg-blue-50 transition-all font-medium shadow-lg hover:shadow-xl"
+                className="px-6 py-3 bg-gradient-to-r from-rose-gold to-dusty-rose text-ivory rounded-lg hover:shadow-glow transition-all duration-300 font-medium shadow-md"
+                aria-label="前往价格页面购买积分"
               >
                 购买更多积分
               </button>
             </div>
           </div>
-        </div>
+        </FadeIn>
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">我的项目</h2>
-            <p className="text-gray-600 mt-1">
-              {projects.length} 个项目总计
-              {filteredProjects.length < projects.length && (
-                <span className="text-blue-600"> • {filteredProjects.length} 个匹配筛选条件</span>
-              )}
-            </p>
+        <FadeIn delay={0.2}>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+            <div>
+              <h2 className="text-2xl font-display font-medium text-navy">我的项目</h2>
+              <p className="text-stone mt-1">
+                {projects.length} 个项目总计
+                {filteredProjects.length < projects.length && (
+                  <span className="text-dusty-rose"> • {filteredProjects.length} 个匹配筛选条件</span>
+                )}
+              </p>
+            </div>
+
+            <button
+              onClick={() => onNavigate('templates')}
+              className="px-6 py-3 bg-gradient-to-r from-rose-gold to-dusty-rose text-ivory rounded-md hover:shadow-glow transition-all duration-300 font-medium shadow-md flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              创建新项目
+            </button>
           </div>
-
-          <button
-            onClick={() => onNavigate('templates')}
-            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-pink-600 text-white rounded-xl hover:from-blue-700 hover:to-pink-700 transition-all font-medium shadow-md hover:shadow-lg flex items-center gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            创建新项目
-          </button>
-        </div>
+        </FadeIn>
 
         {/* 搜索和筛选 */}
         <ProjectFilters
@@ -199,75 +205,76 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
           templateNames={templateNames}
         />
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
-          <div className="flex border-b border-gray-200">
-            {tabs.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                {tab.label}
-                <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs bg-gray-100 rounded-full">
-                  {tab.count}
-                </span>
-              </button>
-            ))}
-          </div>
+        <FadeIn delay={0.3}>
+          <GlassCard className="mb-6">
+            <div className="flex border-b border-stone/10">
+              {tabs.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                    activeTab === tab.id
+                      ? 'border-dusty-rose text-dusty-rose'
+                      : 'border-transparent text-stone hover:text-navy'
+                  }`}
+                >
+                  {tab.label}
+                  <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs bg-champagne rounded-full">
+                    {tab.count}
+                  </span>
+                </button>
+              ))}
+            </div>
 
-          {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
-            </div>
-          ) : filteredProjects.length === 0 ? (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
-              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Camera className="w-10 h-10 text-gray-400" />
+            {loading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-12 h-12 text-dusty-rose animate-spin" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">还没有项目</h3>
-              <p className="text-gray-600 mb-6">开始用AI创作惊艳的婚纱照</p>
-              <button
-                onClick={() => onNavigate('templates')}
-                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-pink-600 text-white rounded-xl hover:from-blue-700 hover:to-pink-700 transition-all font-medium inline-flex items-center gap-2"
-              >
-                <Plus className="w-5 h-5" />
-                创建您的第一个项目
-              </button>
-            </div>
-          ) : loading ? (
+            ) : filteredProjects.length === 0 ? (
+              <div className="p-12 text-center">
+                <div className="w-20 h-20 bg-champagne rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Camera className="w-10 h-10 text-stone" />
+                </div>
+                <h3 className="text-xl font-display font-medium text-navy mb-2">还没有项目</h3>
+                <p className="text-stone mb-6">开始用AI创作惊艳的婚纱照</p>
+                <button
+                  onClick={() => onNavigate('templates')}
+                  className="px-6 py-3 bg-gradient-to-r from-rose-gold to-dusty-rose text-ivory rounded-md hover:shadow-glow transition-all duration-300 font-medium inline-flex items-center gap-2 shadow-md"
+                >
+                  <Plus className="w-5 h-5" />
+                  创建您的第一个项目
+                </button>
+              </div>
+            ) : loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {Array.from({ length: 6 }).map((_, i) => (
                 <CardSkeleton key={i} aspectClass="aspect-video" lines={2} showBadge />
               ))}
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProjects.map(project => (
-                <div
-                  key={project.id}
-                  className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-200 hover:shadow-lg transition-all group cursor-pointer"
-                  onClick={() => project.generation?.status === 'completed' && project.generation?.id && onNavigate('results', undefined, project.generation.id)}
-                >
-                  <div className="relative aspect-video overflow-hidden">
-                    <Image
-                      src={project.template?.preview_image_url || project.uploaded_photos[0] || 'https://images.pexels.com/photos/338515/pexels-photo-338515.jpeg?auto=compress&cs=tinysrgb&w=400'}
-                      alt={project.name}
-                      fill
-                      className="object-cover group-hover:scale-110 transition-transform duration-300"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+                {filteredProjects.map(project => (
+                  <div
+                    key={project.id}
+                    className="bg-ivory rounded-md overflow-hidden shadow-sm border border-stone/10 hover:shadow-lg transition-all duration-500 group cursor-pointer"
+                    onClick={() => project.generation?.status === 'completed' && project.generation?.id && onNavigate('results', undefined, project.generation.id)}
+                  >
+                    <div className="relative aspect-video overflow-hidden">
+                      <Image
+                        src={project.template?.preview_image_url || project.uploaded_photos[0] || 'https://images.pexels.com/photos/338515/pexels-photo-338515.jpeg?auto=compress&cs=tinysrgb&w=400'}
+                        alt={project.name}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-700"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-navy/60 to-transparent" />
 
-                    <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
-                      <div className="flex items-center gap-2 px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-full">
-                        {renderStatus(project.generation?.status || project.status)}
-                      </div>
-                      
-                      <div className="bg-white/90 backdrop-blur-sm rounded-lg">
+                      <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-ivory/95 backdrop-blur-sm rounded-full shadow-sm">
+                          {renderStatus(project.generation?.status || project.status)}
+                        </div>
+
+                        <div className="bg-ivory/95 backdrop-blur-sm rounded-md shadow-sm">
                         <ProjectActionsMenu
                           projectId={project.id}
                           projectName={project.name}
@@ -275,13 +282,10 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
                           onView={() => project.generation?.id && onNavigate('results', undefined, project.generation.id)}
                           onEdit={() => {
                             // TODO: 实现编辑功能
-                            console.log('编辑项目:', project.id);
+                            setToast({ message: '编辑功能即将推出', type: 'error' });
                           }}
-                          onDelete={async () => {
-                            if (window.confirm(`确定要删除项目"${project.name}"吗？此操作不可撤销。`)) {
-                              // TODO: 实现删除功能
-                              console.log('删除项目:', project.id);
-                            }
+                          onDelete={() => {
+                            setDeleteConfirm({ id: project.id, name: project.name });
                           }}
                           onRegenerate={() => {
                             // TODO: 实现重新生成功能
@@ -303,21 +307,21 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
                       </div>
                     </div>
 
-                    {project.generation?.status === 'completed' && (
-                      <div className="absolute bottom-3 left-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="w-full px-4 py-2.5 bg-white text-gray-900 rounded-lg hover:bg-gray-100 transition-all font-medium flex items-center justify-center gap-2">
-                          查看结果
-                          <ArrowRight className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                      {project.generation?.status === 'completed' && (
+                        <div className="absolute bottom-3 left-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <button className="w-full px-4 py-2.5 bg-ivory text-navy rounded-md hover:bg-champagne transition-all duration-300 font-medium flex items-center justify-center gap-2 shadow-lg">
+                            查看结果
+                            <ArrowRight className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
 
-                  <div className="p-6">
-                    <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">
-                      {project.name}
-                    </h3>
-                    <p className="text-sm text-gray-600 mb-4">模板：{project.template?.name || '未选择'}</p>
+                    <div className="p-5">
+                      <h3 className="text-lg font-display font-medium text-navy mb-1 group-hover:text-dusty-rose transition-colors">
+                        {project.name}
+                      </h3>
+                      <p className="text-sm text-stone mb-4">模板：{project.template?.name || '未选择'}</p>
 
                     {/* 处理中项目显示进度条 */}
                     {(project.generation?.status === 'processing' || project.generation?.status === 'pending') && project.generation?.id && (
@@ -326,58 +330,82 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-4">
-                        {project.generation?.status === 'completed' && project.generation?.preview_images && (
-                          <div className="flex items-center gap-1 text-gray-600">
-                            <Camera className="w-4 h-4" />
-                            {project.generation.preview_images.length} 张照片
-                          </div>
-                        )}
-                        {(project.generation?.status === 'processing' || project.generation?.status === 'pending') && (
-                          <div className="flex items-center gap-2 text-yellow-600">
-                            <Clock className="w-4 h-4 animate-spin" />
-                            进行中...
-                          </div>
-                        )}
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-4">
+                          {project.generation?.status === 'completed' && project.generation?.preview_images && (
+                            <div className="flex items-center gap-1 text-stone">
+                              <Camera className="w-4 h-4" />
+                              {project.generation.preview_images.length} 张照片
+                            </div>
+                          )}
+                          {(project.generation?.status === 'processing' || project.generation?.status === 'pending') && (
+                            <div className="flex items-center gap-2 text-dusty-rose">
+                              <Clock className="w-4 h-4 animate-spin" />
+                              进行中...
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-stone/70">{getTimeAgo(project.created_at)}</span>
                       </div>
-                      <span className="text-gray-500">{getTimeAgo(project.created_at)}</span>
                     </div>
                   </div>
+                ))}
+              </div>
+            )}
+
+            {/* 统计图表 */}
+            {projects.length > 0 && (
+              <div className="mt-12 px-6 pb-6">
+                <h3 className="text-xl font-display font-medium text-navy mb-6">数据统计</h3>
+                <ProjectStatsChart projects={projects} />
+              </div>
+            )}
+
+            <div className="m-6 bg-gradient-to-br from-champagne to-blush rounded-md p-8 border border-rose-gold/20">
+              <div className="flex flex-col md:flex-row items-center gap-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-rose-gold to-dusty-rose rounded-md flex items-center justify-center flex-shrink-0 shadow-sm">
+                  <Sparkles className="w-8 h-8 text-ivory" />
                 </div>
-              ))}
-            </div>
-          )}
-
-          {/* 统计图表 */}
-          {projects.length > 0 && (
-            <div className="mt-12">
-              <h3 className="text-xl font-bold text-gray-900 mb-6">数据统计</h3>
-              <ProjectStatsChart projects={projects} />
-            </div>
-          )}
-
-          <div className="mt-12 bg-gradient-to-br from-blue-50 to-pink-50 rounded-2xl p-8 border border-blue-100">
-            <div className="flex flex-col md:flex-row items-center gap-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-pink-600 rounded-2xl flex items-center justify-center flex-shrink-0">
-                <Sparkles className="w-8 h-8 text-white" />
+                <div className="flex-1 text-center md:text-left">
+                  <h3 className="text-xl font-display font-medium text-navy mb-2">需要更多积分？</h3>
+                  <p className="text-stone">
+                    Get more generations with our affordable credit packages. Perfect for creating unlimited variations.
+                  </p>
+                </div>
+                <button
+                  onClick={() => onNavigate('pricing')}
+                  className="px-6 py-3 bg-gradient-to-r from-rose-gold to-dusty-rose text-ivory rounded-md hover:shadow-glow transition-all duration-300 font-medium shadow-md whitespace-nowrap"
+                >
+                  查看价格
+                </button>
               </div>
-              <div className="flex-1 text-center md:text-left">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">需要更多积分？</h3>
-                <p className="text-gray-600">
-                  Get more generations with our affordable credit packages. Perfect for creating unlimited variations.
-                </p>
-              </div>
-              <button
-                onClick={() => onNavigate('pricing')}
-                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-pink-600 text-white rounded-xl hover:from-blue-700 hover:to-pink-700 transition-all font-medium shadow-md hover:shadow-lg whitespace-nowrap"
-              >
-                查看价格
-              </button>
             </div>
-          </div>
-        </div>
+          </GlassCard>
+        </FadeIn>
       </div>
+
+      {/* 删除确认对话框 */}
+      {deleteConfirm && (
+        <ConfirmDialog
+          isOpen={true}
+          title="删除项目"
+          message={`确定要删除项目"${deleteConfirm.name}"吗？此操作不可撤销，将同时删除所有相关的生成记录。`}
+          confirmText="删除"
+          cancelText="取消"
+          variant="danger"
+          onConfirm={() => handleDeleteProject(deleteConfirm.id)}
+          onCancel={() => setDeleteConfirm(null)}
+        />
+      )}
+
+      {/* Toast 通知 */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }

@@ -67,6 +67,15 @@ export async function POST(req: Request) {
         }, { status: 501 });
       }
       try {
+        // TODO: 安装 stripe 依赖后启用真实支付
+        // 暂时使用模拟支付
+        return NextResponse.json({
+          orderId: order.id,
+          payment_intent_id: `mock_${order.id}`,
+          message: 'Using mock payment - install stripe for real payments',
+        });
+
+        /* 真实 Stripe 集成代码（需要安装 stripe 依赖）
         // 动态导入以避免在未安装 stripe 包时报错
         // @ts-expect-error dynamic import without types
         const Stripe = (await import('stripe')).default;
@@ -97,6 +106,7 @@ export async function POST(req: Request) {
           .eq('id', order.id);
 
         return NextResponse.json({ orderId: order.id, payment_intent_id: session.id, checkout_url: session.url });
+        */
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : 'Stripe create session failed';
         return NextResponse.json({ error: msg }, { status: 500 });

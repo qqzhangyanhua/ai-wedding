@@ -47,25 +47,25 @@ export function TemplatesPage({ onNavigate }: TemplatesPageProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
+    <div className="min-h-screen bg-champagne py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          <h1 className="text-4xl md:text-5xl font-display font-medium text-navy mb-4">
             选择您完美的
-            <span className="bg-gradient-to-r from-blue-600 to-pink-600 bg-clip-text text-transparent"> 风格</span>
+            <span className="text-dusty-rose"> 风格</span>
           </h1>
-          <p className="text-xl text-gray-600">浏览我们令人惊叹的婚纱照模板集合</p>
+          <p className="text-xl text-stone">浏览我们令人惊叹的婚纱照模板集合</p>
         </div>
 
         <div className="mb-8">
           <div className="relative max-w-xl mx-auto mb-8">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone" />
             <input
               type="text"
               placeholder="搜索模板..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+              className="w-full pl-12 pr-4 py-4 border border-stone/20 bg-ivory rounded-md focus:ring-2 focus:ring-dusty-rose/30 focus:border-dusty-rose transition-all shadow-sm"
             />
           </div>
 
@@ -74,10 +74,10 @@ export function TemplatesPage({ onNavigate }: TemplatesPageProps) {
               <button
                 key={category.id}
                 onClick={() => setSelectedCategory(category.id)}
-                className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
+                className={`px-6 py-3 rounded-md font-medium transition-all duration-200 flex items-center gap-2 ${
                   selectedCategory === category.id
-                    ? 'bg-gradient-to-r from-blue-600 to-pink-600 text-white shadow-md'
-                    : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+                    ? 'bg-gradient-to-r from-rose-gold to-dusty-rose text-ivory shadow-md'
+                    : 'bg-ivory text-navy hover:bg-champagne border border-stone/10'
                 }`}
               >
                 {typeof category.icon === 'string' ? (
@@ -92,8 +92,8 @@ export function TemplatesPage({ onNavigate }: TemplatesPageProps) {
         </div>
 
         <div className="mb-6 flex items-center justify-between">
-          <p className="text-gray-600">
-            显示 <span className="font-semibold text-gray-900">{filteredTemplates.length}</span> 个模板
+          <p className="text-stone">
+            显示 <span className="font-semibold text-navy">{filteredTemplates.length}</span> 个模板
           </p>
         </div>
 
@@ -108,59 +108,60 @@ export function TemplatesPage({ onNavigate }: TemplatesPageProps) {
           {filteredTemplates.map(template => (
             <div
               key={template.id}
-              className="group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 cursor-pointer"
+              className="group bg-ivory rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer border border-stone/10"
             >
               <div className="relative aspect-[3/4] overflow-hidden">
                 <Image
                   src={template.preview_image_url}
                   alt={template.name}
                   fill
-                  className="object-cover group-hover:scale-110 transition-transform duration-500"
+                  className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute inset-0 bg-gradient-to-t from-navy/80 via-navy/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleFavorite(template.id);
                   }}
-                  className="absolute top-4 right-4 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-all"
+                  className="absolute top-4 right-4 w-10 h-10 bg-ivory/95 backdrop-blur-sm rounded-full hover:bg-ivory flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-md"
+                  aria-label={favorites.has(template.id) ? '取消收藏' : '收藏模板'}
                 >
                   <Heart
                     className={`w-5 h-5 ${
                       favorites.has(template.id)
-                        ? 'fill-red-500 text-red-500'
-                        : 'text-gray-600'
+                        ? 'fill-dusty-rose text-dusty-rose'
+                        : 'text-navy'
                     }`}
                   />
                 </button>
 
-                <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
                   <button
                     onClick={() => handleTemplateSelect(template)}
-                    className="w-full px-4 py-2.5 bg-white text-gray-900 rounded-lg hover:bg-gray-100 transition-all font-medium flex items-center justify-center gap-2 shadow-lg"
+                    className="w-full px-4 py-3 bg-ivory text-navy rounded-md hover:bg-champagne transition-colors shadow-lg font-medium flex items-center justify-center gap-2"
                   >
                     使用此模板
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
 
-                <div className="absolute top-4 left-4 px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-full flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" />
-                  {template.price_credits} 积分
+                <div className="absolute top-4 left-4 px-3 py-1.5 bg-ivory/95 backdrop-blur-sm rounded-full flex items-center gap-1.5 shadow-sm">
+                  <Sparkles className="w-3.5 h-3.5 text-rose-gold" />
+                  <span className="text-sm font-medium text-navy">{template.price_credits}</span>
                 </div>
               </div>
 
               <div className="p-5">
-                <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+                <h3 className="text-lg font-display font-medium text-navy mb-2 group-hover:text-dusty-rose transition-colors">
                   {template.name}
                 </h3>
-                <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
+                <p className="text-sm text-stone line-clamp-2 leading-relaxed">
                   {template.description}
                 </p>
                 <div className="mt-4 flex items-center justify-between">
-                  <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  <span className="text-xs font-medium text-stone/70 uppercase tracking-wider">
                     {categoryInfo[template.category].name}
                   </span>
                 </div>
@@ -172,11 +173,11 @@ export function TemplatesPage({ onNavigate }: TemplatesPageProps) {
 
         {!loading && filteredTemplates.length === 0 && (
           <div className="text-center py-20">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search className="w-8 h-8 text-gray-400" />
+            <div className="w-16 h-16 bg-champagne rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search className="w-8 h-8 text-stone" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">未找到模板</h3>
-            <p className="text-gray-600">尝试调整搜索或筛选条件</p>
+            <h3 className="text-2xl font-display font-medium text-navy mb-2">未找到模板</h3>
+            <p className="text-stone">尝试调整搜索或筛选条件</p>
           </div>
         )}
       </div>

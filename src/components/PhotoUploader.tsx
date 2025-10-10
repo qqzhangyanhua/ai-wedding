@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Check, Upload, AlertCircle, AlertTriangle, HelpCircle } from 'lucide-react';
+import { X, Check, Upload, AlertCircle, AlertTriangle, HelpCircle, Camera, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 import {
   DndContext,
@@ -20,6 +20,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { checkImageQuality, QualityResult } from '@/lib/image-quality-checker';
 import { PhotoGuideModal } from './PhotoGuideModal';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface PhotoWithQuality {
   dataUrl: string;
@@ -151,6 +152,8 @@ export function PhotoUploader({ photos, onChange, maxPhotos = 10, minPhotos = 5 
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showDeletePoorConfirm, setShowDeletePoorConfirm] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -265,6 +268,27 @@ export function PhotoUploader({ photos, onChange, maxPhotos = 10, minPhotos = 5 
 
   return (
     <div className="space-y-4">
+      {/* 上传指引卡片 */}
+      <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+        <h4 className="font-medium text-navy mb-3 flex items-center gap-2">
+          <Camera className="w-5 h-5 text-blue-600" />
+          上传照片小贴士
+        </h4>
+        <ol className="space-y-2 text-sm text-stone list-decimal list-inside mb-3">
+          <li>至少上传 5 张不同角度的清晰照片</li>
+          <li>确保光线充足，避免阴影遮挡面部</li>
+          <li>不要佩戴墨镜、口罩等遮挡物</li>
+          <li>包含正面、侧面、微笑等多种表情</li>
+        </ol>
+        <button 
+          type="button"
+          onClick={() => setShowGuideModal(true)}
+          className="text-blue-600 hover:text-blue-700 font-medium text-sm flex items-center gap-1 transition-colors"
+        >
+          查看优质照片示例 <ArrowRight className="w-4 h-4" />
+        </button>
+      </div>
+
       <div className="flex items-center justify-between">
         <label className="block text-sm font-medium text-gray-700">
           上传照片 ({photos.length}/{maxPhotos})
@@ -275,7 +299,7 @@ export function PhotoUploader({ photos, onChange, maxPhotos = 10, minPhotos = 5 
               {poorQualityCount > 0 && (
                 <button
                   type="button"
-                  onClick={deletePoorQuality}
+                  onClick={() => setShowDeletePoorConfirm(true)}
                   className="text-sm text-yellow-600 hover:text-yellow-700 font-medium"
                 >
                   删除低质量照片
@@ -290,10 +314,7 @@ export function PhotoUploader({ photos, onChange, maxPhotos = 10, minPhotos = 5 
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setPhotosWithQuality([]);
-                  onChange([]);
-                }}
+                onClick={() => setShowClearConfirm(true)}
                 className="text-sm text-red-600 hover:text-red-700 font-medium"
               >
                 清空所有
@@ -340,20 +361,12 @@ export function PhotoUploader({ photos, onChange, maxPhotos = 10, minPhotos = 5 
         </div>
       </div>
 
-      <div className="flex items-start justify-between gap-4">
-        <p className="text-sm text-gray-500 flex-1">
-          上传{minPhotos}-{maxPhotos}张高质量照片，从不同角度清晰展现您的面部。拖动照片可调整顺序。
-          {isAnalyzing && <span className="text-blue-600 font-medium ml-2">正在分析照片质量...</span>}
-        </p>
-        <button
-          type="button"
-          onClick={() => setShowGuideModal(true)}
-          className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium whitespace-nowrap"
-        >
-          <HelpCircle className="w-4 h-4" />
-          查看示例
-        </button>
-      </div>
+      {isAnalyzing && (
+        <div className="text-sm text-blue-600 font-medium flex items-center gap-2">
+          <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          正在分析照片质量...
+        </div>
+      )}
 
       {poorQualityCount > 0 && (
         <div className="flex items-start gap-3 p-3 bg-yellow-50 border border-yellow-200 rounded-xl">
@@ -430,6 +443,31 @@ export function PhotoUploader({ photos, onChange, maxPhotos = 10, minPhotos = 5 
       )}
 
       <PhotoGuideModal isOpen={showGuideModal} onClose={() => setShowGuideModal(false)} />
+      
+      <ConfirmDialog
+        isOpen={showClearConfirm}
+        title="确认清空所有照片？"
+        message="此操作将删除所有已上传的照片，且无法恢复。确定要继续吗？"
+        confirmText="确认清空"
+        cancelText="取消"
+        variant="danger"
+        onConfirm={() => {
+          setPhotosWithQuality([]);
+          onChange([]);
+        }}
+        onCancel={() => setShowClearConfirm(false)}
+      />
+
+      <ConfirmDialog
+        isOpen={showDeletePoorConfirm}
+        title="确认删除低质量照片？"
+        message={`将删除 ${poorQualityCount} 张质量不合格的照片。建议删除后重新上传高质量照片以获得最佳效果。`}
+        confirmText="确认删除"
+        cancelText="取消"
+        variant="warning"
+        onConfirm={deletePoorQuality}
+        onCancel={() => setShowDeletePoorConfirm(false)}
+      />
     </div>
   );
 }

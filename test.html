@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenAI 以图生图演示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .config-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        textarea {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="password"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+            font-family: inherit;
+        }
+
+        .image-upload {
+            margin-bottom: 20px;
+        }
+
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .upload-area:hover {
+            background-color: #f0f4ff;
+        }
+
+        .upload-area.dragover {
+            background-color: #e8edff;
+            border-color: #4c51bf;
+        }
+
+        #imagePreview {
+            max-width: 100%;
+            max-height: 300px;
+            margin-top: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result-section {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .result-images {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .result-image {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .result-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .success {
+            color: #2d5;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 OpenAI 以图生图演示</h1>
+
+        <div class="config-section">
+            <h3 style="margin-bottom: 15px; color: #667eea;">⚙️ API 配置</h3>
+            <div class="form-group">
+                <label for="baseUrl">Base URL:</label>
+                <input type="text" id="baseUrl" placeholder="例如: https://api.openai.com/v1" value="https://api.5202030.xyz/v1">
+            </div>
+            <div class="form-group">
+                <label for="model">模型名称:</label>
+                <input type="text" id="model" placeholder="例如: dall-e-2 或 dall-e-3" value="Qwen/Qwen-Image-Edit">
+            </div>
+            <div class="form-group">
+                <label for="apiKey">API Key:</label>
+                <input value="sk-uZR2goYFqCLpgx5_MEcY22k_FmZeKmp6t2gL5Yh2fzPXvSdWcvdF9J81RZs" type="password" id="apiKey" placeholder="输入你的 API Key">
+            </div>
+        </div>
+
+        <div class="image-upload">
+            <h3 style="margin-bottom: 15px; color: #667eea;">🖼️ 上传图片</h3>
+            <div class="upload-area" id="uploadArea">
+                <p>📁 点击选择图片或拖拽图片到这里</p>
+                <p style="color: #999; font-size: 14px; margin-top: 10px;">支持 PNG, JPG 格式</p>
+                <input type="file" id="imageInput" accept="image/*" style="display: none;">
+            </div>
+            <img id="imagePreview" alt="预览图片">
+        </div>
+
+        <div class="form-group">
+            <label for="prompt">提示词 (描述你想要的修改):</label>
+            <textarea id="prompt" placeholder="例如: 将图片转换为水彩画风格"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="numImages">生成数量 (1-10):</label>
+            <input type="text" id="numImages" value="1" placeholder="1">
+        </div>
+
+        <button class="btn" id="generateBtn">🚀 生成图片</button>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>正在生成图片，请稍候...</p>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="result-section" id="resultSection">
+            <h3 style="color: #667eea; margin-bottom: 10px;">✨ 生成结果</h3>
+            <div class="result-images" id="resultImages"></div>
+        </div>
+    </div>
+
+    <script src="test.js"></script>
+</body>
+</html>
+

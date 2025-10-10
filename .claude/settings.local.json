@@ -14,7 +14,8 @@
       "mcp__playwright__browser_click",
       "mcp__playwright__browser_snapshot",
       "mcp__playwright__browser_close",
-      "WebFetch(domain:www.reactbits.dev)"
+      "WebFetch(domain:www.reactbits.dev)",
+      "Bash(pnpm typecheck:*)"
     ],
     "deny": [],
     "ask": []

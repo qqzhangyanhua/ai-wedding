@@ -37,34 +37,34 @@ export function AuthModal({ onClose }: AuthModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/50 backdrop-blur-sm">
+      <div className="relative w-full max-w-md bg-ivory rounded-xl shadow-2xl border border-stone/10">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+          className="absolute top-4 right-4 p-2 text-stone hover:text-navy rounded-md hover:bg-champagne transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
 
         <div className="p-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
+          <h2 className="text-3xl font-display font-medium text-navy mb-2">
             {isLogin ? '欢迎回来' : '创建账号'}
           </h2>
-          <p className="text-gray-600 mb-6">
+          <p className="text-stone mb-6">
             {isLogin ? '登录以访问您的项目' : '开始创作精美婚纱照'}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">姓名</label>
+                <label className="block text-sm font-medium text-navy mb-2">姓名</label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone" />
                   <input
                     type="text"
                     value={formData.fullName}
                     onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                    className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-11 pr-4 py-3 border border-stone/20 bg-champagne rounded-md focus:ring-2 focus:ring-dusty-rose/30 focus:border-dusty-rose transition-all"
                     placeholder="请输入您的姓名"
                     required={!isLogin}
                   />
@@ -73,14 +73,14 @@ export function AuthModal({ onClose }: AuthModalProps) {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">邮箱</label>
+              <label className="block text-sm font-medium text-navy mb-2">邮箱</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone" />
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-11 pr-4 py-3 border border-stone/20 bg-champagne rounded-md focus:ring-2 focus:ring-dusty-rose/30 focus:border-dusty-rose transition-all"
                   placeholder="请输入邮箱"
                   required
                 />
@@ -88,14 +88,14 @@ export function AuthModal({ onClose }: AuthModalProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">密码</label>
+              <label className="block text-sm font-medium text-navy mb-2">密码</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone" />
                 <input
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-11 pr-4 py-3 border border-stone/20 bg-champagne rounded-md focus:ring-2 focus:ring-dusty-rose/30 focus:border-dusty-rose transition-all"
                   placeholder="请输入密码"
                   required
                 />
@@ -103,15 +103,15 @@ export function AuthModal({ onClose }: AuthModalProps) {
             </div>
 
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-600">{error}</p>
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                <p className="text-sm text-destructive">{error}</p>
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all font-medium shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-3 bg-navy text-ivory rounded-md hover:bg-navy/90 transition-all duration-300 font-medium shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
@@ -130,7 +130,7 @@ export function AuthModal({ onClose }: AuthModalProps) {
                 setIsLogin(!isLogin);
                 setError('');
               }}
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              className="text-sm text-dusty-rose hover:text-dusty-rose/80 font-medium transition-colors"
             >
               {isLogin ? '没有账号？注册' : '已有账号？登录'}
             </button>

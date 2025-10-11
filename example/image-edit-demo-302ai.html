@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片风格转换 API 演示 - 302.AI Gemini</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .form-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result-section {
+            display: none;
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+        }
+
+        .result-images {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .image-card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .image-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .image-card h4 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .image-card p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .error {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .success {
+            background: #efe;
+            border: 1px solid #cfc;
+            color: #363;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .api-info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 0 10px 10px 0;
+        }
+
+        .api-info h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+
+        .api-info code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .example-prompts {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .example-prompts h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .prompt-tag {
+            display: inline-block;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            padding: 5px 12px;
+            margin: 3px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .prompt-tag:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 图片风格转换 API 演示</h1>
+            <p>使用 302.AI 的 Gemini 2.5 Flash Image 模型，将图片转换为各种艺术风格</p>
+        </div>
+
+        <div class="api-info">
+            <h3>📋 Gemini 2.5 Flash Image API 信息</h3>
+            <p><strong>端点：</strong> <code>POST /google/v1/models/gemini-2.5-flash-image</code></p>
+            <p><strong>模型：</strong> gemini-2.5-flash-image (Google 最新图像生成模型)</p>
+            <p><strong>功能：</strong> 图片风格转换、艺术化处理、创意重绘</p>
+            <p><strong>格式：</strong> Google Gemini 原生格式，支持文本+图像多模态输入</p>
+            <p><strong>文档：</strong> <a href="https://doc.302.ai/341602151e0" target="_blank">302.AI 官方文档</a></p>
+        </div>
+
+        <div class="form-section">
+            <h2>🔧 API 配置</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="baseUrl">Base URL *</label>
+                    <input type="url" id="baseUrl" placeholder="https://api.302.ai" required value="https://api.302.ai">
+                </div>
+                <div class="form-group">
+                    <label for="apiKey">API Key *</label>
+                    <input type="password" id="apiKey" placeholder="sk-..." required value="sk-9oEqKDh3XbrYjq14yOi605c247r449wJMityFH5r0yuV13t0">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2>🖼️ 图片风格转换参数</h2>
+
+            <div class="form-group">
+                <label for="imageUrl">图片 URL *</label>
+                <input type="url" id="imageUrl" 
+                       placeholder="https://example.com/image.jpg" 
+                       value="https://file.302ai.cn/gpt/imgs/20250507/d778f9319c534b1c8ffc49c15db14fb1.jpg"
+                       required>
+                <small style="color: #666; font-size: 12px;">支持 PNG、WEBP、JPG 格式的图片 URL</small>
+            </div>
+
+            <div class="form-group">
+                <label for="prompt">风格转换提示词 *</label>
+                <textarea id="prompt" 
+                          placeholder="描述您想要的风格转换效果..."
+                          required>变成Ghibli卡通风格</textarea>
+                <small style="color: #666; font-size: 12px;">描述您想要的艺术风格或转换效果，支持中文提示词</small>
+                
+                <div class="example-prompts">
+                    <h4>💡 风格示例（点击使用）</h4>
+                    <span class="prompt-tag" onclick="setPrompt('变成Ghibli卡通风格')">Ghibli卡通风格</span>
+                    <span class="prompt-tag" onclick="setPrompt('转换为油画风格')">油画风格</span>
+                    <span class="prompt-tag" onclick="setPrompt('变成水彩画风格')">水彩画风格</span>
+                    <span class="prompt-tag" onclick="setPrompt('转换为素描风格')">素描风格</span>
+                    <span class="prompt-tag" onclick="setPrompt('变成像素艺术风格')">像素艺术</span>
+                    <span class="prompt-tag" onclick="setPrompt('转换为赛博朋克风格')">赛博朋克</span>
+                    <span class="prompt-tag" onclick="setPrompt('变成梵高星空风格')">梵高风格</span>
+                    <span class="prompt-tag" onclick="setPrompt('转换为日式动漫风格')">日式动漫</span>
+                    <span class="prompt-tag" onclick="setPrompt('变成中国水墨画风格')">中国水墨画</span>
+                    <span class="prompt-tag" onclick="setPrompt('转换为3D渲染风格')">3D渲染</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="responseFormat">返回格式</label>
+                <select id="responseFormat">
+                    <option value="url">URL (图片链接)</option>
+                    <option value="b64_json">Base64 JSON</option>
+                </select>
+            </div>
+
+            <button class="btn" onclick="convertImage()">
+                ✨ 开始风格转换
+            </button>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>正在进行风格转换，请稍候...</p>
+        </div>
+
+        <div class="error" id="error"></div>
+        <div class="success" id="success"></div>
+
+        <div class="result-section" id="resultSection">
+            <h2>✨ 转换结果</h2>
+            <div class="result-images" id="resultImages"></div>
+        </div>
+    </div>
+
+    <script>
+        async function convertImage() {
+            // 获取表单数据
+            const baseUrl = document.getElementById('baseUrl').value.trim();
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const imageUrl = document.getElementById('imageUrl').value.trim();
+            const prompt = document.getElementById('prompt').value.trim();
+            const responseFormat = document.getElementById('responseFormat').value;
+
+            // 验证必填字段
+            if (!baseUrl || !apiKey || !imageUrl || !prompt) {
+                showError('请填写所有必填字段');
+                return;
+            }
+
+            // 验证 URL 格式
+            try {
+                new URL(baseUrl);
+                new URL(imageUrl);
+            } catch (e) {
+                showError('请输入有效的 URL 地址');
+                return;
+            }
+
+            // 显示加载状态
+            showLoading();
+            hideError();
+            hideSuccess();
+            hideResults();
+
+            try {
+                // 构建 Gemini 格式的请求体
+                const requestBody = {
+                    "contents": [
+                        {
+                            "parts": [
+                                {
+                                    "text": prompt
+                                },
+                                {
+                                    "image_url": imageUrl
+                                }
+                            ]
+                        }
+                    ],
+                    "generationConfig": {
+                        "responseModalities": [
+                            "TEXT",
+                            "IMAGE"
+                        ]
+                    }
+                };
+
+                // 构建请求URL，添加response_format参数
+                const apiUrl = `${baseUrl}/google/v1/models/gemini-2.5-flash-image?response_format=${responseFormat}`;
+
+                // 发送 API 请求
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error?.message || data.message || `HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                // 显示结果
+                displayResults(data);
+                showSuccess('图片风格转换成功！');
+
+            } catch (error) {
+                console.error('API 调用失败:', error);
+                showError(`转换失败: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function displayResults(data) {
+            const resultSection = document.getElementById('resultSection');
+            const resultImages = document.getElementById('resultImages');
+            
+            // 清空之前的结果
+            resultImages.innerHTML = '';
+
+            // 处理 Gemini 响应格式
+            let images = [];
+            let textResponse = '';
+
+            // Gemini 响应可能包含 candidates 数组
+            if (data.candidates && data.candidates.length > 0) {
+                const candidate = data.candidates[0];
+                if (candidate.content && candidate.content.parts) {
+                    candidate.content.parts.forEach(part => {
+                        if (part.text) {
+                            textResponse += part.text + ' ';
+                        }
+                        // 处理 URL 格式的图片
+                        if (part.url) {
+                            images.push({
+                                url: part.url
+                            });
+                        }
+                        // 处理 Base64 格式的图片
+                        if (part.inlineData && part.inlineData.data) {
+                            images.push({
+                                b64_json: part.inlineData.data,
+                                mimeType: part.inlineData.mimeType
+                            });
+                        }
+                    });
+                }
+            }
+
+            // 处理其他可能的响应格式
+            if (data.data && Array.isArray(data.data)) {
+                images = [...images, ...data.data];
+            } else if (data.images && Array.isArray(data.images)) {
+                images = [...images, ...data.images];
+            } else if (data.url || data.b64_json) {
+                images.push(data);
+            }
+
+            if (images.length > 0) {
+                images.forEach((item, index) => {
+                    const imageCard = document.createElement('div');
+                    imageCard.className = 'image-card';
+
+                    let imageContent = '';
+                    if (item.url) {
+                        imageContent = `<img src="${item.url}" alt="转换结果 ${index + 1}" loading="lazy">`;
+                    } else if (item.b64_json) {
+                        const mimeType = item.mimeType || 'image/png';
+                        imageContent = `<img src="data:${mimeType};base64,${item.b64_json}" alt="转换结果 ${index + 1}" loading="lazy">`;
+                    }
+
+                    imageCard.innerHTML = `
+                        ${imageContent}
+                        <h4>转换结果 ${index + 1}</h4>
+                        <p>${textResponse || '风格转换完成'}</p>
+                        ${item.url ? `<p><small>URL: <a href="${item.url}" target="_blank">查看原图</a></small></p>` : ''}
+                    `;
+
+                    resultImages.appendChild(imageCard);
+                });
+
+                // 显示任务信息
+                const infoCard = document.createElement('div');
+                infoCard.className = 'image-card';
+                let infoHtml = '<h4>📊 任务信息</h4>';
+                
+                if (data.usageMetadata) {
+                    infoHtml += `
+                        <p><strong>提示令牌:</strong> ${data.usageMetadata.promptTokenCount || 'N/A'}</p>
+                        <p><strong>候选令牌:</strong> ${data.usageMetadata.candidatesTokenCount || 'N/A'}</p>
+                        <p><strong>总令牌:</strong> ${data.usageMetadata.totalTokenCount || 'N/A'}</p>
+                    `;
+                    
+                    // 显示详细的令牌统计信息
+                    if (data.usageMetadata.promptTokensDetails) {
+                        infoHtml += '<p><strong>提示令牌详情:</strong></p>';
+                        data.usageMetadata.promptTokensDetails.forEach(detail => {
+                            infoHtml += `<p style="margin-left: 15px;">• ${detail.modality}: ${detail.tokenCount}</p>`;
+                        });
+                    }
+                    
+                    if (data.usageMetadata.thoughtsTokenCount !== undefined) {
+                        infoHtml += `<p><strong>思考令牌:</strong> ${data.usageMetadata.thoughtsTokenCount}</p>`;
+                    }
+                }
+                
+                if (data.modelVersion) {
+                    infoHtml += `<p><strong>模型版本:</strong> ${data.modelVersion}</p>`;
+                }
+                
+                // 显示完成原因
+                if (data.candidates && data.candidates[0] && data.candidates[0].finishReason) {
+                    infoHtml += `<p><strong>完成原因:</strong> ${data.candidates[0].finishReason}</p>`;
+                }
+                
+                infoCard.innerHTML = infoHtml;
+                resultImages.appendChild(infoCard);
+
+                resultSection.style.display = 'block';
+            } else {
+                showError('未能获取到转换结果，请检查响应数据');
+            }
+        }
+
+        function setPrompt(promptText) {
+            document.getElementById('prompt').value = promptText;
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.querySelector('.btn').disabled = true;
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+            document.querySelector('.btn').disabled = false;
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('error').style.display = 'none';
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+        }
+
+        function hideSuccess() {
+            document.getElementById('success').style.display = 'none';
+        }
+
+        function hideResults() {
+            document.getElementById('resultSection').style.display = 'none';
+        }
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('302.AI Gemini 2.5 Flash Image 演示页面已加载');
+        });
+    </script>
+</body>
+</html>

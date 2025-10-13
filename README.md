@@ -11,14 +11,19 @@ ai-wedding
 
 2) 配置环境变量
    - 复制 `.env.example` 为 `.env`
-   - 配置以下变量：
-     - NEXT_PUBLIC_SUPABASE_URL
-     - NEXT_PUBLIC_SUPABASE_ANON_KEY
-     - SUPABASE_SERVICE_ROLE_KEY（仅服务端使用，用于 Webhook 更新订单与积分）
-     - OPENAI_BASE_URL（可选，默认 https://api.openai.com）
-     - OPENAI_API_KEY
-     - OPENAI_IMAGE_MODEL（可选，默认 dall-e-3）
-     - STRIPE_WEBHOOK_SECRET（如接入 Stripe Webhook）
+   - 必填：
+     - `NEXT_PUBLIC_SUPABASE_URL`
+     - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - 图片生成（服务端，密钥不暴露到前端）：
+     - `IMAGE_API_MODE`：`images`（默认，调用 `/v1/images/generations`）或 `chat`（调用 `/v1/chat/completions` 并从 Markdown 提取 Base64 图片，参考 example/image-edit-demo.html）
+     - `IMAGE_API_BASE_URL`：例如 `https://api.openai.com` 或 `https://api.aioec.tech`
+     - `IMAGE_API_KEY`
+     - `IMAGE_IMAGE_MODEL`：`images` 模式下的模型（默认 `dall-e-3`）
+     - `IMAGE_CHAT_MODEL`：`chat` 模式下的图像模型（例如 `gemini-2.5-flash-image`）
+   - 兼容：若未设置 `IMAGE_*`，将回退至 `OPENAI_*`（`OPENAI_BASE_URL`、`OPENAI_API_KEY`、`OPENAI_IMAGE_MODEL`）
+   - 其他可选：
+     - `SUPABASE_SERVICE_ROLE_KEY`（仅服务端使用）
+     - `STRIPE_WEBHOOK_SECRET`（如接入 Stripe Webhook）
 
 3) 初始化数据库（可选但推荐）
    - 将根目录 `database-schema.sql` 中的 SQL 在 Supabase SQL Editor 执行

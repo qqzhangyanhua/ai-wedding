@@ -4,6 +4,11 @@ export interface Profile {
   full_name?: string;
   avatar_url?: string;
   credits: number;
+  // 邀请相关字段（可选）
+  invite_code?: string;
+  invited_by?: string | null;
+  invite_count?: number;
+  reward_credits?: number;
   created_at: string;
   updated_at: string;
 }

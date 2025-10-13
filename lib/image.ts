@@ -7,6 +7,7 @@ export type GenerateOptions = {
   size?: '256x256' | '512x512' | '1024x1024' | string;
   response_format?: 'url' | 'b64_json';
   model?: string; // 可选：若需覆盖服务端默认模型
+  image_inputs?: string[]; // 可选：传递 dataURL 的参考图像（最多3张，chat模式使用）
 };
 
 import { supabase } from '@/src/lib/supabase';
@@ -33,5 +34,5 @@ export async function generateImage(prompt: string, options: GenerateOptions = {
 
   // 兼容返回结构：{ data: { data: [...] } }（服务端已包裹）
   const items = json?.data?.data || [];
-  return items as Array<{ url?: string; b64_json?: string }>;
+  return items as Array<{ url?: string; b64_json?: string; data_url?: string; mime?: string }>;
 }

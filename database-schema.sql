@@ -8,6 +8,11 @@ CREATE TABLE IF NOT EXISTS profiles (
   full_name text,
   avatar_url text,
   credits integer DEFAULT 0,
+  -- 邀请相关：唯一邀请码、被谁邀请、累计邀请数、累计奖励积分
+  invite_code text UNIQUE,
+  invited_by text,
+  invite_count integer DEFAULT 0,
+  reward_credits integer DEFAULT 0,
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
 );
@@ -114,6 +119,19 @@ CREATE INDEX IF NOT EXISTS idx_generations_user_id ON generations(user_id);
 CREATE INDEX IF NOT EXISTS idx_generations_project_id ON generations(project_id);
 CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_templates_category ON templates(category);
+
+-- 邀请事件表（可选，用于审计与统计）
+CREATE TABLE IF NOT EXISTS invite_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  inviter_id uuid REFERENCES profiles(id) ON DELETE SET NULL,
+  invitee_id uuid REFERENCES profiles(id) ON DELETE SET NULL,
+  inviter_code text,
+  reward_credits integer DEFAULT 0,
+  created_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE invite_events ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view own invite events" ON invite_events FOR SELECT TO authenticated USING (auth.uid() = inviter_id OR auth.uid() = invitee_id);
 
 -- Insert sample templates
 INSERT INTO templates (name, description, category, price_credits, sort_order, preview_image_url) VALUES

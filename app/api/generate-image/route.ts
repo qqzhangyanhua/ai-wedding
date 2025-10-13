@@ -1,13 +1,23 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { GenerateImageSchema, validateData } from '@/lib/validations';
+
+type ChatContentItem =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string } };
 
 // 可选：如需运行在 Edge 环境，取消注释
 export const runtime = 'edge';
 
 // 从环境变量读取配置（服务端安全，不以 NEXT_PUBLIC_ 开头）
-const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL || 'https://api.openai.com';
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const OPENAI_IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || process.env.OPENAI_MODEL || 'dall-e-3';
+// 兼容两套命名：优先使用 IMAGE_*，否则回退到 OPENAI_*
+const IMAGE_API_BASE_URL = process.env.IMAGE_API_BASE_URL || process.env.OPENAI_BASE_URL || 'https://api.openai.com';
+const IMAGE_API_KEY = process.env.IMAGE_API_KEY || process.env.OPENAI_API_KEY;
+const IMAGE_IMAGE_MODEL = process.env.IMAGE_IMAGE_MODEL || process.env.OPENAI_IMAGE_MODEL || process.env.OPENAI_MODEL || 'dall-e-3';
+// chat/completions 模式用于部分兼容 OpenAI 的供应商（例如示例中的 gemini-2.5-flash-image）
+const IMAGE_CHAT_MODEL = process.env.IMAGE_CHAT_MODEL || IMAGE_IMAGE_MODEL || 'gemini-2.5-flash-image';
+// 控制调用后端：'images'（默认，/v1/images/generations）或 'chat'（/v1/chat/completions 并从 Markdown 中提取 Base64 图片）
+const IMAGE_API_MODE = (process.env.IMAGE_API_MODE || 'images').toLowerCase();
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -18,30 +28,39 @@ type RLRecord = { windowStart: number; count: number };
 // Edge 运行时下的全局内存（同区域生效）
 const rateBucket = new Map<string, RLRecord>();
 
-type GeneratePayload = {
-  prompt: string;
-  n?: number;
-  size?: '256x256' | '512x512' | '1024x1024' | string;
-  response_format?: 'url' | 'b64_json';
-  model?: string; // 允许按需覆盖
-};
-
 export async function POST(req: Request) {
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  console.log(`[${requestId}] ========== 开始处理图片生成请求 ==========`);
+  
   try {
-    if (!OPENAI_API_KEY) {
+    // 日志：环境变量检查
+    console.log(`[${requestId}] 环境变量检查:`, {
+      IMAGE_API_MODE,
+      IMAGE_API_BASE_URL,
+      IMAGE_API_KEY: IMAGE_API_KEY ? `${IMAGE_API_KEY.substring(0, 10)}...` : 'missing',
+      IMAGE_CHAT_MODEL,
+      SUPABASE_URL,
+    });
+
+    if (!IMAGE_API_KEY) {
+      console.error(`[${requestId}] ❌ IMAGE_API_KEY 未配置`);
       return NextResponse.json(
-        { error: 'Server misconfigured: OPENAI_API_KEY is missing' },
+        { error: 'Server misconfigured: IMAGE_API_KEY/OPENAI_API_KEY is missing' },
         { status: 500 }
       );
     }
 
     // 1) 认证校验：要求前端携带 Supabase 会话 token（Authorization: Bearer <token>）
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      console.error(`[${requestId}] ❌ Supabase 环境变量未配置`);
       return NextResponse.json({ error: 'Server misconfigured: Supabase env missing' }, { status: 500 });
     }
 
     const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
+    console.log(`[${requestId}] 认证 Header:`, authHeader ? `Bearer ${authHeader.split(' ')[1]?.substring(0, 20)}...` : 'missing');
+    
     if (!authHeader?.toLowerCase().startsWith('bearer ')) {
+      console.error(`[${requestId}] ❌ 未提供认证 Token`);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const token = authHeader.split(' ')[1];
@@ -51,8 +70,11 @@ export async function POST(req: Request) {
     });
     const { data: userData, error: userErr } = await supabase.auth.getUser();
     if (userErr || !userData?.user) {
+      console.error(`[${requestId}] ❌ 用户认证失败:`, userErr);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    console.log(`[${requestId}] ✅ 用户认证成功: ${userData.user.id}`);
 
     // 2) 速率限制（按用户维度）
     const userId = userData.user.id;
@@ -62,6 +84,7 @@ export async function POST(req: Request) {
       rateBucket.set(userId, { windowStart: now, count: 1 });
     } else {
       if (rec.count >= RL_LIMIT) {
+        console.warn(`[${requestId}] ⚠️ 速率限制: 用户 ${userId} 超过限制`);
         return NextResponse.json(
           { error: 'Too Many Requests' },
           { status: 429, headers: { 'Retry-After': String(Math.ceil((rec.windowStart + RL_WINDOW_MS - now) / 1000)) } }
@@ -70,55 +93,243 @@ export async function POST(req: Request) {
       rec.count += 1;
       rateBucket.set(userId, rec);
     }
+    console.log(`[${requestId}] 速率限制检查通过: ${rec?.count || 1}/${RL_LIMIT}`);
 
-    const body = (await req.json()) as GeneratePayload;
-    const { prompt, n = 1, size = '1024x1024', response_format = 'url', model } = body || {};
+    const body = await req.json();
+    console.log(`[${requestId}] 请求 Body:`, JSON.stringify(body, null, 2));
 
-    if (!prompt || typeof prompt !== 'string') {
-      return NextResponse.json({ error: 'Invalid prompt' }, { status: 400 });
-    }
-    const safePrompt = prompt.trim();
-    if (safePrompt.length > 800) {
-      return NextResponse.json({ error: 'Prompt too long' }, { status: 400 });
-    }
-
-    const safeN = Math.max(1, Math.min(8, Number(n) || 1));
-    const allowedSizes = new Set(['256x256', '512x512', '1024x1024']);
-    const safeSize = allowedSizes.has(size) ? size : '1024x1024';
-    const safeResponse = response_format === 'b64_json' ? 'b64_json' : 'url';
-
-    const endpoint = `${OPENAI_BASE_URL.replace(/\/$/, '')}/v1/images/generations`;
-
-    const payload = {
-      model: model || OPENAI_IMAGE_MODEL,
-      prompt: safePrompt,
-      n: safeN,
-      size: safeSize,
-      response_format: safeResponse,
-    };
-
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
+    // 使用Zod验证输入
+    const validation = validateData(GenerateImageSchema, body);
+    if (!validation.success) {
+      console.error(`[${requestId}] ❌ 参数验证失败:`, validation.error);
       return NextResponse.json(
-        { error: data?.error || data || 'Image generation failed' },
-        { status: res.status }
+        { error: validation.error },
+        { status: 400 }
       );
     }
 
-    // 标准 OpenAI 兼容：返回 data 数组，元素含 url 或 b64_json
-    return NextResponse.json({ data }, { headers: { 'Cache-Control': 'no-store' } });
+    const { prompt, n, size, response_format, model, image_inputs } = validation.data;
+    console.log(`[${requestId}] ✅ 参数验证通过:`, {
+      prompt: prompt.substring(0, 100) + '...',
+      n,
+      size,
+      response_format,
+      model: model || IMAGE_CHAT_MODEL,
+      image_inputs_count: image_inputs?.length || 0,
+    });
+
+    if (IMAGE_API_MODE === 'chat') {
+      console.log(`[${requestId}] 📝 使用 Chat 模式生成图片`);
+      
+      // 使用 chat/completions 生成图片（返回 Markdown 中的 data:image/...;base64,xxx）
+      const endpoint = `${IMAGE_API_BASE_URL.replace(/\/$/, '')}/v1/chat/completions`;
+      console.log(`[${requestId}] API 端点: ${endpoint}`);
+
+      // 非流式，便于服务端统一解析
+      const chatContent: ChatContentItem[] = [{ type: 'text', text: prompt.trim() }];
+
+      // 允许最多3张dataURL图像作为参考输入（与 example/image-edit-demo.html 对齐）
+      if (Array.isArray(image_inputs)) {
+        const picked = image_inputs
+          .filter((s) => typeof s === 'string' && s.startsWith('data:image/'))
+          .slice(0, 3);
+        console.log(`[${requestId}] 图片输入: ${picked.length} 张`);
+        for (const dataUrl of picked) {
+          const preview = dataUrl.substring(0, 50) + '...' + dataUrl.substring(dataUrl.length - 20);
+          console.log(`[${requestId}]   - 图片: ${preview}`);
+          chatContent.push({ type: 'image_url', image_url: { url: dataUrl } });
+        }
+      } else {
+        console.log(`[${requestId}] 无图片输入`);
+      }
+
+      // 【重要】完全参考 demo 的请求格式
+      const chatBody = {
+        model: model || IMAGE_CHAT_MODEL,
+        temperature: 1,
+        top_p: 1,
+        messages: [
+          {
+            role: 'user',
+            content: chatContent,
+          },
+        ],
+        stream: false, // 非流式，便于解析
+      };
+
+      console.log(`[${requestId}] 📤 发送请求到上游 API:`, {
+        endpoint,
+        model: chatBody.model,
+        temperature: chatBody.temperature,
+        top_p: chatBody.top_p,
+        messages_count: chatBody.messages.length,
+        content_items: chatBody.messages[0].content.length,
+      });
+
+      const fetchStartTime = Date.now();
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${IMAGE_API_KEY}`,
+        },
+        body: JSON.stringify(chatBody),
+      });
+      const fetchDuration = Date.now() - fetchStartTime;
+
+      console.log(`[${requestId}] 📥 收到响应: ${res.status} ${res.statusText} (耗时: ${fetchDuration}ms)`);
+
+      const data = await res.json();
+      
+      if (!res.ok) {
+        console.error(`[${requestId}] ❌ 上游 API 返回错误:`, {
+          status: res.status,
+          statusText: res.statusText,
+          error: data?.error || data,
+        });
+        return NextResponse.json(
+          { error: data?.error || data || 'Image generation failed' },
+          { status: res.status }
+        );
+      }
+
+      console.log(`[${requestId}] 📦 上游 API 响应数据:`, {
+        choices_count: data?.choices?.length,
+        has_content: !!data?.choices?.[0]?.message?.content,
+        content_length: data?.choices?.[0]?.message?.content?.length,
+      });
+
+      // 解析返回中的 Markdown 图片，提取 Base64 数据
+      const content: string | undefined = data?.choices?.[0]?.message?.content;
+      if (typeof content !== 'string' || !content) {
+        console.error(`[${requestId}] ❌ 响应中没有有效内容`);
+        return NextResponse.json(
+          { error: 'Invalid chat completion content' },
+          { status: 502 }
+        );
+      }
+
+      console.log(`[${requestId}] 📄 返回内容预览:`, content.substring(0, 200) + '...');
+
+      // 匹配 Markdown 图片中的 Base64 数据
+      // 兼容 Markdown 图片内可能出现的换行/空白
+      const mdImageRegex = /!\[[^\]]*\]\(data:image\/([a-zA-Z0-9.+-]+);base64,\s*([\sA-Za-z0-9+/=]+)\)/;
+      const match = content.match(mdImageRegex);
+      
+      if (!match) {
+        console.error(`[${requestId}] ❌ 无法从响应中提取图片数据`);
+        console.error(`[${requestId}] 完整内容:`, content);
+        return NextResponse.json(
+          { error: 'No image data found in completion content', raw_content: content.substring(0, 500) },
+          { status: 502 }
+        );
+      }
+
+      const mimeType = match[1];
+      const b64 = match[2].replace(/\s+/g, '');
+      console.log(`[${requestId}] ✅ 成功提取图片数据:`, {
+        mimeType,
+        base64_length: b64.length,
+        estimated_size_kb: Math.round(b64.length * 0.75 / 1024),
+      });
+
+      const outItems = Array.from({ length: Math.max(1, Math.min(8, n || 1)) }, () => ({
+        b64_json: b64,
+        mime: `image/${mimeType}`,
+        data_url: `data:image/${mimeType};base64,${b64}`,
+      }));
+      const out = { data: { data: outItems } };
+
+      console.log(`[${requestId}] ✅ 图片生成成功，返回 ${outItems.length} 张图片`);
+      console.log(`[${requestId}] ========== 请求处理完成 ==========`);
+
+      return NextResponse.json(
+        out,
+        {
+          headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          },
+        }
+      );
+    } else {
+      console.log(`[${requestId}] 📝 使用 Images 模式生成图片`);
+      
+      // 默认使用 OpenAI 兼容的 images/generations 接口
+      const endpoint = `${IMAGE_API_BASE_URL.replace(/\/$/, '')}/v1/images/generations`;
+      console.log(`[${requestId}] API 端点: ${endpoint}`);
+
+      const payload = {
+        model: model || IMAGE_IMAGE_MODEL,
+        prompt: prompt.trim(),
+        n,
+        size,
+        response_format,
+      };
+
+      console.log(`[${requestId}] 📤 发送请求到上游 API:`, {
+        endpoint,
+        model: payload.model,
+        prompt: payload.prompt.substring(0, 100) + '...',
+        n: payload.n,
+        size: payload.size,
+        response_format: payload.response_format,
+      });
+
+      const fetchStartTime = Date.now();
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${IMAGE_API_KEY}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const fetchDuration = Date.now() - fetchStartTime;
+
+      console.log(`[${requestId}] 📥 收到响应: ${res.status} ${res.statusText} (耗时: ${fetchDuration}ms)`);
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error(`[${requestId}] ❌ 上游 API 返回错误:`, {
+          status: res.status,
+          statusText: res.statusText,
+          error: data?.error || data,
+        });
+        return NextResponse.json(
+          { error: data?.error || data || 'Image generation failed' },
+          { status: res.status }
+        );
+      }
+
+      console.log(`[${requestId}] ✅ 图片生成成功，返回数据:`, {
+        data_count: data?.data?.length,
+      });
+      console.log(`[${requestId}] ========== 请求处理完成 ==========`);
+
+      // 标准 OpenAI 兼容：返回 data 数组，元素含 url 或 b64_json
+      return NextResponse.json(
+        { data },
+        {
+          headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          },
+        }
+      );
+    }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unexpected error';
+    const stack = err instanceof Error ? err.stack : undefined;
+    console.error(`[${requestId}] ❌ 发生异常:`, {
+      message,
+      stack,
+      error: err,
+    });
+    console.error(`[${requestId}] ========== 请求处理失败 ==========`);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

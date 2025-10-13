@@ -1,0 +1,709 @@
+import { useState } from 'react';
+import { Loader2, ArrowLeft, Image as ImageIcon, Check, AlertCircle, Sparkles, Download, Heart, Eye } from 'lucide-react';
+import { Template } from '../types/database';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
+import { Toast } from '../components/Toast';
+import { generateImageStream } from '@/lib/image-stream';
+import NextImage from 'next/image';
+import { PhotoUploader } from '../components/PhotoUploader';
+import { GenerationNotification } from '../components/GenerationNotification';
+import { GeneratingTips } from '../components/GeneratingTips';
+import { FadeIn, GlassCard } from '@/components/react-bits';
+import { mockGenerateImages } from '@/lib/mock-generator';
+import { ImagePreviewModal } from '../components/ImagePreviewModal';
+
+interface CreatePageProps {
+  onNavigate: (page: string) => void;
+  selectedTemplate?: Template;
+}
+
+export function CreatePage({ onNavigate, selectedTemplate }: CreatePageProps) {
+  const { profile, refreshProfile } = useAuth();
+  const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
+  const [projectName, setProjectName] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationStage, setGenerationStage] = useState<'uploading' | 'analyzing' | 'generating' | 'completed' | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [backgroundGenerationId, setBackgroundGenerationId] = useState<string | null>(null);
+  const [allowBackground, setAllowBackground] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [savedState, setSavedState] = useState<{ photos: string[]; projectName: string } | null>(null);
+  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+  const [generationId, setGenerationId] = useState<string | null>(null);
+  const [previewImageIndex, setPreviewImageIndex] = useState<number | null>(null);
+  const [favorites, setFavorites] = useState<Set<number>>(new Set());
+
+  const handleGenerate = async () => {
+    if (uploadedPhotos.length < 1 || !selectedTemplate) return;
+
+    setIsGenerating(true);
+    setUploadProgress(0);
+    setGenerationStage('uploading');
+    setGenerationError(null);
+
+    setSavedState({
+      photos: uploadedPhotos,
+      projectName: projectName,
+    });
+
+    let generationId: string | null = null;
+    try {
+      setGenerationStage('uploading');
+      setUploadProgress(5);
+
+      const previewImages: string[] = [];
+
+      if (!profile) {
+        // 未登录：走本地试用生成
+        setGenerationStage('analyzing');
+        setUploadProgress(25);
+        const imgs = await mockGenerateImages({ input: uploadedPhotos[0], variants: 3 });
+        previewImages.push(...imgs);
+        setUploadProgress(80);
+      } else {
+        // 已登录：走真实生成与写库
+        const { data: project, error: projectError } = await supabase
+          .from('projects')
+          .insert({
+            user_id: profile.id,
+            name: projectName,
+            status: 'processing',
+            uploaded_photos: uploadedPhotos
+          })
+          .select()
+          .single();
+
+        if (projectError) throw projectError;
+        setUploadProgress(20);
+
+        setGenerationStage('analyzing');
+
+        const { data: generation, error: generationError } = await supabase
+          .from('generations')
+          .insert({
+            project_id: project.id,
+            user_id: profile.id,
+            template_id: selectedTemplate.id,
+            status: 'processing', // 先设置为 processing，后面根据情况更新
+            credits_used: selectedTemplate.price_credits
+          })
+          .select()
+          .single();
+
+        if (generationError) throw generationError;
+        if (!generation) throw new Error('创建 generation 记录失败');
+        generationId = generation.id;
+
+        const { error: creditError } = await supabase
+          .from('profiles')
+          .update({ credits: profile.credits - selectedTemplate.price_credits })
+          .eq('id', profile.id);
+
+        if (creditError) throw creditError;
+
+        await refreshProfile();
+        setUploadProgress(40);
+
+        setGenerationStage('generating');
+        setUploadProgress(50);
+
+        const prompt = `${selectedTemplate.name}: ${selectedTemplate.description || ''} wedding portrait, high quality, cinematic lighting`;
+        
+        // 使用流式 API 生成图片
+        const result = await generateImageStream({
+          prompt,
+          imageInputs: uploadedPhotos.length > 0 ? [uploadedPhotos[0]] : undefined,
+          n: 4,
+          onProgress: (content) => {
+            // 实时更新进度（可选）
+            console.log('生成进度:', content.length, '字符');
+          },
+          onStatus: (status) => {
+            console.log('生成状态:', status);
+            if (status === 'streaming') {
+              setUploadProgress(60);
+            } else if (status === 'parsing') {
+              setUploadProgress(80);
+            }
+          },
+        });
+
+        if (result.imageData) {
+          const generatedDataUrl = result.imageData.dataUrl;
+          
+          // 上传生成的图片到 MinIO
+          try {
+            console.log('上传生成的图片到 MinIO...');
+            const uploadResponse = await fetch('/api/upload-image', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                image: generatedDataUrl,
+                folder: 'generated',
+              }),
+            });
+
+            if (!uploadResponse.ok) {
+              throw new Error(`上传失败: ${uploadResponse.statusText}`);
+            }
+
+            const uploadResult = await uploadResponse.json();
+            const minioUrl = uploadResult.url;
+            console.log(`✅ 生成的图片上传成功: ${minioUrl}`);
+            
+            // 使用 MinIO URL
+            previewImages.push(minioUrl);
+          } catch (uploadError) {
+            console.error('上传生成的图片到 MinIO 失败:', uploadError);
+            // 如果上传失败，回退到使用 dataUrl
+            previewImages.push(generatedDataUrl);
+          }
+        } else {
+          throw new Error('未能生成图片');
+        }
+      }
+
+      setUploadProgress(90);
+
+      const now = new Date().toISOString();
+      
+      // 根据是否后台生成来设置最终状态
+      if (profile) {
+        const finalStatus = allowBackground ? 'pending' : 'completed';
+        const updateData: {
+          status: string;
+          preview_images: string[];
+          completed_at?: string;
+        } = {
+          status: finalStatus,
+          preview_images: previewImages,
+        };
+        
+        // 如果是前台生成，设置完成时间
+        if (!allowBackground) {
+          updateData.completed_at = now;
+        }
+        
+        // 写回数据库状态
+        const { error: genUpdateErr } = await supabase
+          .from('generations')
+          .update(updateData)
+          .eq('id', generationId!);
+        if (genUpdateErr) {
+          console.error('更新generation状态失败:', genUpdateErr);
+          throw genUpdateErr;
+        }
+
+        // 再更新project状态
+        const { data: genRow } = await supabase
+          .from('generations')
+          .select('project_id')
+          .eq('id', generationId!)
+          .single();
+        if (genRow?.project_id) {
+          const projectStatus = allowBackground ? 'processing' : 'completed';
+          const { error: projUpdateErr } = await supabase
+            .from('projects')
+            .update({ 
+              status: projectStatus,
+              updated_at: now
+            })
+            .eq('id', genRow.project_id);
+          if (projUpdateErr) {
+            console.error('更新project状态失败:', projUpdateErr);
+            throw projUpdateErr;
+          }
+        }
+
+        console.log('✅ 状态更新成功:', {
+          generationId,
+          status: finalStatus,
+          isBackground: allowBackground,
+          previewCount: previewImages.length
+        });
+      }
+
+      setGenerationStage('completed');
+      setUploadProgress(100);
+
+      if (allowBackground && profile && generationId) {
+        // 后台生成：保持 pending 状态，允许用户离开页面
+        setBackgroundGenerationId(generationId);
+        setToast({ message: '已添加到后台生成队列,可继续浏览其他页面', type: 'success' });
+        setIsGenerating(false);
+        setGenerationStage(null);
+      } else {
+        // 前台生成：已经完成，直接展示结果，不触发轮询
+        setGeneratedImages(previewImages);
+        setGenerationId(generationId);
+        setToast({ message: profile ? '生成完成！请查看下方结果' : '试用生成完成！以下为预览效果', type: 'success' });
+        setIsGenerating(false);
+        setGenerationStage(null);
+      }
+    } catch (error: unknown) {
+      console.error('生成失败:', error);
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+
+      if (profile) {
+        try {
+          if (generationId) {
+            await supabase
+              .from('generations')
+              .update({ status: 'failed', error_message: errorMessage })
+              .eq('id', generationId);
+            // 同时将项目标记为失败，避免界面一直显示处理中
+            const { data: gen } = await supabase
+              .from('generations')
+              .select('project_id')
+              .eq('id', generationId)
+              .single();
+            if (gen?.project_id) {
+              await supabase
+                .from('projects')
+                .update({ status: 'failed' })
+                .eq('id', gen.project_id);
+            }
+          }
+        } catch (persistErr) {
+          console.error('生成失败后回写失败:', persistErr);
+        }
+      }
+
+      setGenerationError(errorMessage);
+      setToast({ message: '生成失败,请查看详情并重试', type: 'error' });
+      setIsGenerating(false);
+      setGenerationStage(null);
+    }
+  };
+
+  const handleRetry = () => {
+    if (savedState) {
+      setUploadedPhotos(savedState.photos);
+      setProjectName(savedState.projectName);
+      setGenerationError(null);
+      handleGenerate();
+    }
+  };
+
+  const handleDownloadImage = async (url: string, index: number) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `${projectName || '婚纱照'}_预览_${index + 1}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      
+      setToast({ message: '图片下载成功！', type: 'success' });
+    } catch (error) {
+      console.error('下载失败:', error);
+      setToast({ message: '下载失败，请重试', type: 'error' });
+    }
+  };
+
+  const toggleFavorite = (index: number) => {
+    setFavorites(prev => {
+      const newFavorites = new Set(prev);
+      if (newFavorites.has(index)) {
+        newFavorites.delete(index);
+      } else {
+        newFavorites.add(index);
+      }
+      return newFavorites;
+    });
+  };
+
+  const canGenerate = uploadedPhotos.length >= 1 && projectName.trim() &&
+    (
+      // 未登录：允许试用
+      !profile ||
+      // 已登录：需积分
+      (profile && profile.credits >= (selectedTemplate?.price_credits || 10))
+    );
+
+  return (
+    <div className="py-12 min-h-screen bg-gradient-to-b from-champagne to-ivory">
+      <div className="px-4 mx-auto max-w-5xl sm:px-6 lg:px-8">
+        <FadeIn delay={0.1}>
+          <button
+            onClick={() => onNavigate('templates')}
+            className="flex gap-2 items-center mb-8 font-medium transition-colors text-stone hover:text-navy"
+            aria-label="返回模板页面"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            返回模板
+          </button>
+        </FadeIn>
+
+        <FadeIn delay={0.2}>
+          <GlassCard className="mb-8">
+            <div className="p-8">
+              <div className="flex flex-col gap-6 items-start mb-8 md:flex-row">
+                {selectedTemplate && (
+                  <NextImage
+                    src={selectedTemplate.preview_image_url}
+                    alt={selectedTemplate.name}
+                    width={128}
+                    height={160}
+                    className="object-cover w-32 h-40 rounded-lg border-2 shadow-md border-ivory"
+                  />
+                )}
+                <div className="flex-1">
+                  <h1 className="mb-2 text-3xl font-medium font-display text-navy">
+                    {selectedTemplate?.name || '创建项目'}
+                  </h1>
+                  <p className="mb-4 leading-relaxed text-stone">{selectedTemplate?.description}</p>
+                  <div className="flex flex-wrap gap-4 items-center">
+                    <div className="flex gap-2 items-center px-4 py-2 font-medium rounded-md border bg-champagne border-rose-gold/20 text-navy">
+                      <Check className="w-4 h-4 text-rose-gold" />
+                      {selectedTemplate?.price_credits} 积分
+                    </div>
+                    <div className="px-4 py-2 font-medium rounded-md border bg-ivory border-stone/10 text-stone">
+                      您的余额：{profile?.credits || 0} 积分
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <label className="block mb-2 text-sm font-medium text-navy">项目名称</label>
+                <input
+                  type="text"
+                  value={projectName}
+                  onChange={(e) => setProjectName(e.target.value)}
+                  placeholder="例如：我们的梦幻婚纱照"
+                  className="px-4 py-3 w-full rounded-md border transition-all border-stone/20 bg-champagne focus:ring-2 focus:ring-dusty-rose/30 focus:border-dusty-rose"
+                />
+              </div>
+
+              <div className="mb-8">
+                <PhotoUploader
+                  photos={uploadedPhotos}
+                  onChange={setUploadedPhotos}
+                  maxPhotos={10}
+                  minPhotos={1}
+                />
+              </div>
+
+              {profile && profile.credits < (selectedTemplate?.price_credits || 10) && (
+                <div className="p-6 mb-6 bg-gradient-to-r from-red-50 to-orange-50 rounded-xl border-2 border-red-300 shadow-lg">
+                  <div className="flex gap-4 items-start">
+                    <div className="flex flex-shrink-0 justify-center items-center w-12 h-12 bg-red-500 rounded-full">
+                      <AlertCircle className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="mb-2 text-lg font-semibold text-red-900">积分不足</h4>
+                      <p className="mb-1 text-red-800">
+                        您当前有 <span className="font-bold">{profile.credits}</span> 积分，
+                        还需要 <span className="font-bold text-red-600">{(selectedTemplate?.price_credits || 10) - profile.credits}</span> 积分才能生成
+                      </p>
+                      <p className="mb-4 text-sm text-red-700">
+                        本模板需要 {selectedTemplate?.price_credits} 积分
+                      </p>
+                      <button 
+                        onClick={() => onNavigate('pricing')}
+                        className="flex gap-2 items-center px-6 py-3 font-medium text-white bg-gradient-to-r rounded-lg transition-all from-rose-gold to-dusty-rose hover:shadow-xl"
+                        aria-label="前往价格页面购买积分"
+                      >
+                        <Sparkles className="w-5 h-5" />
+                        立即购买积分
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {!profile && (
+                <div className="p-4 mb-6 bg-blue-50 rounded-xl border border-blue-200">
+                  <div className="text-sm text-blue-900">
+                    <p className="mb-1 font-semibold">试用模式</p>
+                    <p>未登录也可体验生成流程。效果为本地模拟预览，登录后可获得免费积分并生成真实效果。</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <div className="flex gap-3 items-center p-3 rounded-md border bg-champagne border-stone/10">
+                  <input
+                    type="checkbox"
+                    id="allowBackground"
+                    checked={allowBackground}
+                    onChange={(e) => setAllowBackground(e.target.checked)}
+                    className="w-4 h-4 rounded text-dusty-rose focus:ring-2 focus:ring-dusty-rose/30"
+                  />
+                  <label htmlFor="allowBackground" className="flex-1 text-sm cursor-pointer text-navy">
+                    后台生成（可继续浏览其他页面,生成完成后通知您）
+                  </label>
+                </div>
+
+                <button
+                  onClick={handleGenerate}
+                  disabled={!canGenerate || isGenerating}
+                  className="flex gap-2 justify-center items-center py-4 w-full text-lg font-medium bg-gradient-to-r rounded-md shadow-md transition-all duration-300 from-rose-gold to-dusty-rose text-ivory hover:shadow-glow disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      正在生成魔法...
+                    </>
+                  ) : (
+                    <>
+                      <ImageIcon className="w-5 h-5" />
+                      生成婚纱照
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {generationError && savedState && (
+                <div className="p-4 mt-6 rounded-md border bg-destructive/10 border-destructive/20">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <h4 className="mb-1 text-sm font-bold text-destructive">生成失败</h4>
+                      <p className="text-sm text-destructive/80">{generationError}</p>
+                      <p className="mt-2 text-xs text-stone">已保留您的照片和项目信息,可以直接重试</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleRetry}
+                    className="flex gap-2 justify-center items-center px-4 py-3 w-full font-medium rounded-md transition-all bg-destructive text-ivory hover:bg-destructive/90"
+                  >
+                    <Loader2 className="w-5 h-5" />
+                    重新生成
+                  </button>
+                </div>
+              )}
+
+              {isGenerating && (
+                <div className="mt-6">
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="flex gap-2 items-center">
+                      <Loader2 className="w-4 h-4 animate-spin text-dusty-rose" />
+                      <span className="text-sm font-medium text-navy">
+                        {generationStage === 'uploading' && '上传照片中...'}
+                        {generationStage === 'analyzing' && '分析面部特征中...'}
+                        {generationStage === 'generating' && 'AI生成图片中...'}
+                        {generationStage === 'completed' && '生成完成！'}
+                      </span>
+                    </div>
+                    <span className="text-sm font-medium text-dusty-rose">{uploadProgress}%</span>
+                  </div>
+                  <div className="overflow-hidden w-full h-3 rounded-full border bg-champagne border-stone/10">
+                    <div
+                      className="h-full bg-gradient-to-r transition-all duration-500 from-rose-gold to-dusty-rose"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                  <p className="mt-2 text-xs text-stone">
+                    {generationStage === 'uploading' && '正在上传您的照片到云端...'}
+                    {generationStage === 'analyzing' && '正在分析您的面部特征,这需要一些时间...'}
+                    {generationStage === 'generating' && '正在使用AI生成您的婚纱照,通常需要1-2分钟...'}
+                    {generationStage === 'completed' && '已完成所有处理,即将跳转！'}
+                  </p>
+                  <GeneratingTips visible={true} />
+                </div>
+              )}
+            </div>
+          </GlassCard>
+        </FadeIn>
+
+        <FadeIn delay={0.3}>
+          <div className="p-6 rounded-lg border bg-champagne border-rose-gold/20">
+            <h3 className="flex gap-2 items-center mb-3 font-medium font-display text-navy">
+              <ImageIcon className="w-5 h-5 text-rose-gold" />
+              最佳效果小贴士
+            </h3>
+            <ul className="space-y-2 text-sm text-stone">
+              <li className="flex gap-2 items-start">
+                <div className="w-5 h-5 rounded-full bg-rose-gold/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Check className="w-3 h-3 text-rose-gold" />
+                </div>
+                使用高分辨率照片,光线良好
+              </li>
+              <li className="flex gap-2 items-start">
+                <div className="w-5 h-5 rounded-full bg-rose-gold/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Check className="w-3 h-3 text-rose-gold" />
+                </div>
+                从多个角度清晰地展示你的脸
+              </li>
+              <li className="flex gap-2 items-start">
+                <div className="w-5 h-5 rounded-full bg-rose-gold/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Check className="w-3 h-3 text-rose-gold" />
+                </div>
+                避免太阳镜、帽子或面部遮挡物
+              </li>
+              <li className="flex gap-2 items-start">
+                <div className="w-5 h-5 rounded-full bg-rose-gold/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Check className="w-3 h-3 text-rose-gold" />
+                </div>
+                包含不同表情和姿势的照片
+              </li>
+            </ul>
+          </div>
+        </FadeIn>
+
+        {/* 生成结果展示区域 */}
+        {generatedImages.length > 0 && (
+          <FadeIn delay={0.4}>
+            <GlassCard className="mt-8">
+              <div className="p-8">
+                <div className="flex gap-3 items-center mb-6">
+                  <div className="flex justify-center items-center w-12 h-12 bg-gradient-to-br rounded-md shadow-sm from-rose-gold to-dusty-rose">
+                    <Sparkles className="w-6 h-6 text-ivory" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-medium font-display text-navy">生成完成！</h2>
+                    <p className="text-stone">为您生成了 {generatedImages.length} 张精美婚纱照</p>
+                  </div>
+                </div>
+
+                <div className="p-4 mb-6 bg-gradient-to-r rounded-lg border from-rose-gold/10 to-dusty-rose/10 border-rose-gold/20">
+                  <div className="flex gap-3 items-start">
+                    <AlertCircle className="w-5 h-5 text-rose-gold flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-navy">
+                      <p className="mb-1 font-medium">预览模式</p>
+                      <p className="text-stone">这些是带水印的预览图。如需下载无水印的高清版本，请前往结果页面购买。</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {generatedImages.map((url, index) => (
+                    <div
+                      key={index}
+                      className="relative aspect-[3/4] rounded-md overflow-hidden group border border-stone/10 hover:border-rose-gold/30 transition-all duration-500 hover:shadow-xl"
+                    >
+                      <NextImage
+                        src={url}
+                        alt={`生成结果 ${index + 1}`}
+                        fill
+                        className="object-cover transition-transform duration-700 group-hover:scale-105"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                      />
+                      
+                      {/* 悬停遮罩 */}
+                      <div className="absolute inset-0 bg-gradient-to-t via-transparent to-transparent opacity-0 transition-opacity duration-500 from-navy/60 group-hover:opacity-100" />
+                      
+                      {/* 顶部按钮组 */}
+                      <div className="flex absolute top-3 right-3 gap-2 items-center opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                        <button
+                          onClick={() => toggleFavorite(index)}
+                          className={`flex justify-center items-center w-10 h-10 rounded-lg shadow-lg backdrop-blur-sm transition-all duration-300 ${
+                            favorites.has(index)
+                              ? 'bg-rose-gold text-white'
+                              : 'bg-ivory/90 text-stone hover:bg-ivory'
+                          } hover:scale-110`}
+                          aria-label="收藏"
+                        >
+                          <Heart 
+                            className={`w-5 h-5 ${favorites.has(index) ? 'fill-current' : ''}`} 
+                          />
+                        </button>
+                      </div>
+                      
+                      {/* 底部信息和操作栏 */}
+                      <div className="flex absolute right-3 bottom-3 left-3 gap-2 justify-between items-center opacity-0 transition-opacity duration-500 group-hover:opacity-100">
+                        <span className="px-2 py-1 text-sm font-medium rounded backdrop-blur-sm text-ivory bg-navy/80">
+                          #{index + 1}
+                        </span>
+                        
+                        <div className="flex gap-2">
+                          {/* 查看大图 */}
+                          <button
+                            onClick={() => setPreviewImageIndex(index)}
+                            className="flex justify-center items-center w-8 h-8 rounded-lg shadow-lg backdrop-blur-sm transition-all duration-300 bg-ivory/90 hover:bg-ivory hover:scale-110"
+                            aria-label="查看大图"
+                          >
+                            <Eye className="w-4 h-4 text-stone" />
+                          </button>
+                          
+                          {/* 下载 */}
+                          <button
+                            onClick={() => handleDownloadImage(url, index)}
+                            className="flex justify-center items-center w-8 h-8 rounded-lg shadow-lg backdrop-blur-sm transition-all duration-300 bg-ivory/90 hover:bg-ivory hover:scale-110"
+                            aria-label="下载图片"
+                          >
+                            <Download className="w-4 h-4 text-stone" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 收藏标记（固定显示） */}
+                      {favorites.has(index) && (
+                        <div className="absolute top-3 left-3 px-2 py-1 text-xs font-medium rounded backdrop-blur-sm bg-rose-gold/90 text-ivory">
+                          ❤️ 已收藏
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* 收藏统计 */}
+                {favorites.size > 0 && (
+                  <div className="p-4 mb-4 rounded-lg border bg-rose-gold/10 border-rose-gold/20">
+                    <div className="flex gap-2 items-center text-sm text-navy">
+                      <Heart className="w-4 h-4 fill-current text-rose-gold" />
+                      <span>您收藏了 <strong className="text-rose-gold">{favorites.size}</strong> 张照片</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-4 justify-center sm:flex-row">
+                  <button
+                    onClick={() => generationId && (window.location.href = `/results/${generationId}`)}
+                    className="flex gap-2 justify-center items-center px-6 py-3 font-medium bg-gradient-to-r rounded-md shadow-md transition-all duration-300 from-rose-gold to-dusty-rose text-ivory hover:shadow-glow"
+                  >
+                    <Sparkles className="w-5 h-5" />
+                    查看完整结果页面
+                  </button>
+                  <button
+                    onClick={() => onNavigate('dashboard')}
+                    className="flex gap-2 justify-center items-center px-6 py-3 font-medium rounded-md border transition-all duration-300 bg-champagne text-navy hover:bg-ivory border-stone/20"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                    返回仪表盘
+                  </button>
+                </div>
+              </div>
+            </GlassCard>
+          </FadeIn>
+        )}
+      </div>
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+      {backgroundGenerationId && (
+        <GenerationNotification
+          generationId={backgroundGenerationId}
+          onDismiss={() => setBackgroundGenerationId(null)}
+        />
+      )}
+
+      {/* 图片预览模态框 */}
+      {previewImageIndex !== null && (
+        <ImagePreviewModal
+          images={generatedImages}
+          initialIndex={previewImageIndex}
+          isOpen={previewImageIndex !== null}
+          onClose={() => setPreviewImageIndex(null)}
+          onDownload={handleDownloadImage}
+          projectName={projectName || '婚纱照预览'}
+        />
+      )}
+    </div>
+  );
+}

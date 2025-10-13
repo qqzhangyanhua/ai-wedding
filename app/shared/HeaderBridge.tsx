@@ -40,9 +40,9 @@ export default function HeaderBridge() {
     if (pathname?.startsWith('/pricing')) return 'pricing';
     if (pathname?.startsWith('/dashboard')) return 'dashboard';
     if (pathname?.startsWith('/results')) return 'results';
+    if (pathname?.startsWith('/testimonials')) return 'testimonials';
     return 'home';
   })();
 
   return <Header onNavigate={onNavigate} currentPage={currentPage} />;
 }
-

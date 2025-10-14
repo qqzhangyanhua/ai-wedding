@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from 'next/navigation';
-import { Header } from '../../src/components/Header';
+import { Header } from '@/components/Header';
 
 // 将 Next 的路由与现有 Header 的 onNavigate/currentPage 契约做桥接
 export default function HeaderBridge() {

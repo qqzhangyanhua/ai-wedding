@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS generations (
   high_res_images jsonb DEFAULT '[]',
   error_message text,
   credits_used integer DEFAULT 0,
+  is_shared_to_gallery boolean DEFAULT false,
   created_at timestamptz DEFAULT now(),
   completed_at timestamptz
 );
@@ -189,6 +190,9 @@ ALTER TABLE image_downloads ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can insert own downloads" ON image_downloads FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
 CREATE INDEX IF NOT EXISTS idx_image_downloads_user ON image_downloads(user_id);
 CREATE INDEX IF NOT EXISTS idx_image_downloads_gen ON image_downloads(generation_id);
+
+-- Add index for gallery queries
+CREATE INDEX IF NOT EXISTS idx_generations_shared_gallery ON generations(is_shared_to_gallery, created_at DESC) WHERE is_shared_to_gallery = true;
 
 -- Engagement view (likes + downloads) per user/generation
 CREATE OR REPLACE VIEW image_engagement_stats AS

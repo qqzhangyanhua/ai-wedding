@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { TestimonialsPage } from '../../src/views/TestimonialsPage';
+import { TestimonialsPage } from '@/components/TestimonialsPage';
 
 export default function Page() {
   const router = useRouter();

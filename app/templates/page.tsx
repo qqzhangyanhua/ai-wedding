@@ -1,8 +1,8 @@
 "use client";
 
-import { TemplatesPage } from '../../src/views/TemplatesPage';
+import { TemplatesPage } from '@/components/TemplatesPage';
 import { useRouter } from 'next/navigation';
-import { Template } from '../../src/types/database';
+import { Template } from '@/types/database';
 
 export default function Page() {
   const router = useRouter();

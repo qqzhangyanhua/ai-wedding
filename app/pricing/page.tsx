@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { PricingPage } from '../../src/views/PricingPage';
+import { PricingPage } from '@/components/PricingPage';
 
 export default function Page() {
   const router = useRouter();

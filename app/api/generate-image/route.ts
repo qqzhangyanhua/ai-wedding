@@ -238,9 +238,42 @@ export async function POST(req: Request) {
         mime: `image/${mimeType}`,
         data_url: `data:image/${mimeType};base64,${b64}`,
       }));
-      const out = { data: { data: outItems } };
 
-      console.log(`[${requestId}] ✅ 图片生成成功，返回 ${outItems.length} 张图片`);
+      // 将生成结果上传到对象存储，并返回 URL
+      const origin = new URL(req.url).origin;
+      const token = authHeader.split(' ')[1];
+      const folder = `single-shot/${Date.now()}`;
+
+      const uploaded: string[] = [];
+      for (const item of outItems) {
+        const dataUrl: string = item.data_url || (item.b64_json ? `data:image/${mimeType};base64,${item.b64_json}` : '');
+        if (!dataUrl) continue;
+        try {
+          const up = await fetch(`${origin}/api/upload-image`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ image: dataUrl, folder }),
+          });
+          if (up.ok) {
+            const payload = await up.json();
+            // 优先使用预签名URL，24小时有效且可直接访问
+            uploaded.push(payload.presignedUrl || payload.url || dataUrl);
+          } else {
+            console.warn(`[${requestId}] 上传失败（chat 模式），使用 dataURL 回退`);
+            uploaded.push(dataUrl);
+          }
+        } catch (e) {
+          console.warn(`[${requestId}] 调用上传接口异常（chat 模式），使用 dataURL 回退:`, e);
+          uploaded.push(dataUrl);
+        }
+      }
+
+      const out = { data: { data: uploaded.map((url) => ({ url })) } };
+
+      console.log(`[${requestId}] ✅ 图片生成成功并已存储，返回 ${uploaded.length} 个 URL`);
       console.log(`[${requestId}] ========== 请求处理完成 ==========`);
 
       return NextResponse.json(
@@ -260,12 +293,13 @@ export async function POST(req: Request) {
       const endpoint = `${IMAGE_API_BASE_URL.replace(/\/$/, '')}/v1/images/generations`;
       console.log(`[${requestId}] API 端点: ${endpoint}`);
 
+      // 为了统一上传到对象存储，强制请求上游返回 b64_json
       const payload = {
         model: model || IMAGE_IMAGE_MODEL,
         prompt: prompt.trim(),
         n,
         size,
-        response_format,
+        response_format: 'b64_json' as const,
       };
 
       console.log(`[${requestId}] 📤 发送请求到上游 API:`, {
@@ -290,28 +324,66 @@ export async function POST(req: Request) {
 
       console.log(`[${requestId}] 📥 收到响应: ${res.status} ${res.statusText} (耗时: ${fetchDuration}ms)`);
 
-      const data = await res.json();
+      const upstreamData = await res.json();
 
       if (!res.ok) {
         console.error(`[${requestId}] ❌ 上游 API 返回错误:`, {
           status: res.status,
           statusText: res.statusText,
-          error: data?.error || data,
+          error: upstreamData?.error || upstreamData,
         });
         return NextResponse.json(
-          { error: data?.error || data || 'Image generation failed' },
+          { error: upstreamData?.error || upstreamData || 'Image generation failed' },
           { status: res.status }
         );
       }
 
-      console.log(`[${requestId}] ✅ 图片生成成功，返回数据:`, {
-        data_count: data?.data?.length,
-      });
+      const items: Array<{ b64_json?: string; url?: string }> = upstreamData?.data || [];
+
+      // 将上游的 b64_json 转为 dataURL 并上传到对象存储
+      const origin = new URL(req.url).origin;
+      const token = authHeader.split(' ')[1];
+      const folder = `single-shot/${Date.now()}`;
+
+      const uploaded: string[] = [];
+      for (const it of items) {
+        let dataUrl = '';
+        if (it.b64_json) {
+          dataUrl = `data:image/png;base64,${it.b64_json}`;
+        } else if (it.url) {
+          // 理论上不会发生（我们强制 b64_json），如发生则退化为直接返回原 URL
+          uploaded.push(it.url);
+          continue;
+        }
+        if (!dataUrl) continue;
+        try {
+          const up = await fetch(`${origin}/api/upload-image`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ image: dataUrl, folder }),
+          });
+          if (up.ok) {
+            const payload = await up.json();
+            // 优先使用预签名URL，24小时有效且可直接访问
+            uploaded.push(payload.presignedUrl || payload.url || dataUrl);
+          } else {
+            console.warn(`[${requestId}] 上传失败（images 模式），使用 dataURL 回退`);
+            uploaded.push(dataUrl);
+          }
+        } catch (e) {
+          console.warn(`[${requestId}] 调用上传接口异常（images 模式），使用 dataURL 回退:`, e);
+          uploaded.push(dataUrl);
+        }
+      }
+
+      console.log(`[${requestId}] ✅ 图片生成成功并已存储，数量: ${uploaded.length}`);
       console.log(`[${requestId}] ========== 请求处理完成 ==========`);
 
-      // 标准 OpenAI 兼容：返回 data 数组，元素含 url 或 b64_json
       return NextResponse.json(
-        { data },
+        { data: { data: uploaded.map((url) => ({ url })) } },
         {
           headers: {
             'Cache-Control': 'no-store, no-cache, must-revalidate',

@@ -15,7 +15,17 @@
       "mcp__playwright__browser_snapshot",
       "mcp__playwright__browser_close",
       "WebFetch(domain:www.reactbits.dev)",
-      "Bash(pnpm typecheck:*)"
+      "Bash(pnpm typecheck:*)",
+      "Bash(xargs cat:*)",
+      "Bash(find:*)",
+      "Bash(awk:*)",
+      "Bash(curl -s 'http://localhost:3000/api/gallery?page=1&limit=5')",
+      "Bash(npx tsx:*)",
+      "Bash(curl -s 'http://localhost:3000/api/debug/gallery')",
+      "Bash(node test-supabase-direct.js)",
+      "Bash(python3 -m json.tool)",
+      "Bash(node test-completed-data.js)",
+      "Bash(node check-generation-details.js)"
     ],
     "deny": [],
     "ask": []

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from 'react';
-import { AuthProvider } from '../src/contexts/AuthContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   // 捕获 URL 中的邀请参数 ?inv=CODE 并存入本地，供注册时使用

@@ -33,7 +33,7 @@ export async function GET() {
   };
 
   // 测试 3: 查询已完成的
-  const { data: completedGens, error: completedError, count: completedCount } = await supabase
+  const { error: completedError, count: completedCount } = await supabase
     .from('generations')
     .select('*', { count: 'exact' })
     .eq('status', 'completed');

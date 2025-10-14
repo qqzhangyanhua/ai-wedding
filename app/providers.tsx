@@ -12,7 +12,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       if (inv) {
         localStorage.setItem('referrer_code', inv);
       }
-    } catch {}
+    } catch {
+      // 忽略 URL 解析错误（例如 SSR 或非浏览器环境）
+    }
   }, []);
 
   // 将客户端上下文放在 Next App Router 的根部

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Calendar, Camera, Sparkles, Eye, Download, Share2, RefreshCw } from 'lucide-react';
+import { X, Calendar, Camera, Sparkles, Eye, Download, Share2, RefreshCw, ZoomIn, Edit } from 'lucide-react';
 import Image from 'next/image';
 import { ProjectWithTemplate } from '@/types/database';
 import { getStatusLabel, getStatusVisual } from '@/lib/status';
@@ -11,7 +11,6 @@ interface ProjectDetailModalProps {
   onClose: () => void;
   onEdit?: () => void;
   onView?: () => void;
-  onRegenerate?: () => void;
   onShare?: () => void;
   onDownload?: () => void;
 }
@@ -22,11 +21,12 @@ export function ProjectDetailModal({
   onClose,
   onEdit,
   onView,
-  onRegenerate,
   onShare,
   onDownload,
 }: ProjectDetailModalProps) {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
+  const [selectedResultIndex, setSelectedResultIndex] = useState<number | null>(null);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   if (!isOpen) return null;
 
@@ -53,9 +53,15 @@ export function ProjectDetailModal({
     });
   };
 
+  const handleImageClick = (index: number) => {
+    setSelectedResultIndex(index);
+    setIsImageModalOpen(true);
+  };
+
   return (
+    <>
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden">
+      <div className="relative w-full max-w-6xl max-h-[95vh] overflow-hidden">
         <GlassCard className="m-4">
           {/* 头部 */}
           <div className="flex items-center justify-between p-6 border-b border-stone/10">
@@ -161,17 +167,8 @@ export function ProjectDetailModal({
                       onClick={onEdit}
                       className="px-4 py-2 bg-champagne text-navy rounded-md hover:bg-ivory transition-all duration-300 font-medium border border-stone/20 flex items-center gap-2"
                     >
-                      <RefreshCw className="w-4 h-4" />
+                      <Edit className="w-4 h-4" />
                       编辑项目
-                    </button>
-                  )}
-                  {onRegenerate && isCompleted && (
-                    <button
-                      onClick={onRegenerate}
-                      className="px-4 py-2 bg-champagne text-navy rounded-md hover:bg-ivory transition-all duration-300 font-medium border border-stone/20 flex items-center gap-2"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                      重新生成
                     </button>
                   )}
                   {onShare && isCompleted && (
@@ -250,9 +247,13 @@ export function ProjectDetailModal({
                 {Array.isArray(project.generation?.preview_images) && project.generation?.preview_images.length > 0 && (
                   <div className="space-y-3">
                     <h3 className="text-lg font-display font-medium text-navy">生成结果预览</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                       {project.generation.preview_images.map((img, i) => (
-                        <div key={i} className="relative aspect-[3/4] rounded-md overflow-hidden bg-champagne border border-stone/20">
+                        <button
+                          key={i}
+                          onClick={() => handleImageClick(i)}
+                          className="relative aspect-[3/4] rounded-md overflow-hidden bg-champagne border-2 border-stone/20 hover:border-dusty-rose transition-all group"
+                        >
                           <Image
                             src={img}
                             alt={`生成结果 ${i + 1}`}
@@ -260,10 +261,13 @@ export function ProjectDetailModal({
                             className="object-cover"
                             sizes="(max-width: 768px) 50vw, 33vw"
                           />
-                        </div>
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <ZoomIn className="w-8 h-8 text-white" />
+                          </div>
+                        </button>
                       ))}
                     </div>
-                    <p className="text-xs text-stone">完整查看与操作请点击“查看结果”。</p>
+                    <p className="text-xs text-stone">点击图片查看大图</p>
                   </div>
                 )}
               </div>
@@ -272,5 +276,70 @@ export function ProjectDetailModal({
         </GlassCard>
       </div>
     </div>
+
+    {/* 大图查看模态框 */}
+    {isImageModalOpen && selectedResultIndex !== null && project.generation?.preview_images && (
+      <div
+        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm animate-in fade-in duration-200"
+        onClick={() => setIsImageModalOpen(false)}
+      >
+        <button
+          onClick={() => setIsImageModalOpen(false)}
+          className="absolute top-4 right-4 p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+          aria-label="关闭大图"
+        >
+          <X className="w-6 h-6 text-white" />
+        </button>
+
+        <div className="relative w-full max-w-5xl max-h-[90vh] px-4">
+          <div className="relative aspect-[3/4] rounded-lg overflow-hidden shadow-2xl">
+            <Image
+              src={project.generation.preview_images[selectedResultIndex]}
+              alt={`生成结果 ${selectedResultIndex + 1}`}
+              fill
+              className="object-contain"
+              sizes="90vw"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+
+          {/* 导航按钮 */}
+          {project.generation.preview_images.length > 1 && (
+            <div className="flex items-center justify-center gap-4 mt-6">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedResultIndex((prev) =>
+                    prev === null || prev === 0
+                      ? (project.generation?.preview_images?.length || 1) - 1
+                      : prev - 1
+                  );
+                }}
+                className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors font-medium"
+              >
+                上一张
+              </button>
+              <span className="text-white font-medium">
+                {selectedResultIndex + 1} / {project.generation.preview_images.length}
+              </span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedResultIndex((prev) =>
+                    prev === null || prev === (project.generation?.preview_images?.length || 1) - 1
+                      ? 0
+                      : prev + 1
+                  );
+                }}
+                className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors font-medium"
+              >
+                下一张
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+    </>
   );
 }

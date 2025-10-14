@@ -1,4 +1,4 @@
-import { MoreVertical, Eye, Edit, Trash2, RefreshCw, Share2, Download, Globe, EyeOff } from 'lucide-react';
+import { MoreVertical, Eye, Edit, Trash2, Share2, Download, Globe, EyeOff } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 interface ProjectActionsMenuProps {
@@ -9,7 +9,6 @@ interface ProjectActionsMenuProps {
   onView?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
-  onRegenerate?: () => void;
   onShare?: () => void;
   onDownload?: () => void;
   onToggleGalleryShare?: (isShared: boolean) => void;
@@ -23,7 +22,6 @@ export function ProjectActionsMenu({
   onView,
   onEdit,
   onDelete,
-  onRegenerate,
   onShare,
   onDownload,
   onToggleGalleryShare,
@@ -59,14 +57,14 @@ export function ProjectActionsMenu({
   const isCompleted = status === 'completed';
 
   return (
-    <div className="relative" ref={menuRef}>
+    <div className="relative" ref={menuRef} id={`actions-menu-${projectId}`} data-project-id={projectId}>
       <button
         onClick={(e) => {
           e.stopPropagation();
           setIsOpen(!isOpen);
         }}
         className="p-2 rounded-lg hover:bg-white/20 transition-all"
-        aria-label="更多操作"
+        aria-label={`项目 ${projectName} 的更多操作`}
       >
         <MoreVertical className="w-5 h-5" />
       </button>
@@ -90,16 +88,6 @@ export function ProjectActionsMenu({
             >
               <Edit className="w-4 h-4" />
               <span>编辑项目</span>
-            </button>
-          )}
-
-          {onRegenerate && isCompleted && (
-            <button
-              onClick={handleAction(onRegenerate)}
-              className="w-full px-4 py-2.5 text-left hover:bg-gray-50 transition-colors flex items-center gap-3 text-gray-700"
-            >
-              <RefreshCw className="w-4 h-4" />
-              <span>重新生成</span>
             </button>
           )}
 

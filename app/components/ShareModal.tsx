@@ -56,16 +56,7 @@ export function ShareModal({
     }
   };
 
-  const handleDownload = async () => {
-    try {
-      setDownloading(true);
-      await downloadShareCard(imageUrl, projectName);
-    } catch {
-      alert('下载失败，请重试');
-    } finally {
-      setDownloading(false);
-    }
-  };
+  // 下载逻辑在下方按钮的 onClick 内联处理
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">

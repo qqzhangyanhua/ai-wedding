@@ -31,15 +31,21 @@ export function ImagePreviewModal({
   useEffect(() => {
     if (!isOpen) return;
 
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowLeft') handlePrevious();
-      if (e.key === 'ArrowRight') handleNext();
+      if (e.key === 'ArrowLeft') {
+        setCurrentIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
+        setZoom(1);
+      }
+      if (e.key === 'ArrowRight') {
+        setCurrentIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
+        setZoom(1);
+      }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, currentIndex, images.length]);
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, images.length, onClose]);
 
   if (!isOpen) return null;
 
@@ -259,7 +265,6 @@ export function ImagePreviewModal({
     </div>
   );
 }
-
 
 
 

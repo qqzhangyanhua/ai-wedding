@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   full_name text,
   avatar_url text,
   credits integer DEFAULT 0,
+  role text DEFAULT 'user', -- 'user' | 'admin'
   -- 邀请相关：唯一邀请码、被谁邀请、累计邀请数、累计奖励积分
   invite_code text UNIQUE,
   invited_by text,
@@ -40,6 +41,9 @@ CREATE TABLE IF NOT EXISTS templates (
 ALTER TABLE templates ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Templates are publicly readable" ON templates FOR SELECT TO authenticated USING (is_active = true);
+CREATE POLICY "Admins can manage all templates" ON templates FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin'));
 
 -- Create projects table
 CREATE TABLE IF NOT EXISTS projects (

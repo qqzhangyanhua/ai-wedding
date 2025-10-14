@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+// 该路由读取了 request.headers，强制动态渲染
+export const dynamic = 'force-dynamic';
 import { supabase } from '@/lib/supabase';
 
 // 诊断工具：检查用户的项目和生成数据

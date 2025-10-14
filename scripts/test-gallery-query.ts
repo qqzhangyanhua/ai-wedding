@@ -26,7 +26,7 @@ async function testGalleryQuery() {
 
   // 测试 1: 查询所有 generations
   console.log('\n📊 测试 1: 查询所有 generations');
-  const { data: allGens, error: allError, count: allCount } = await supabase
+  const { error: allError, count: allCount } = await supabase
     .from('generations')
     .select('*', { count: 'exact' });
 
@@ -48,7 +48,7 @@ async function testGalleryQuery() {
 
   // 测试 3: 查询 status = 'completed' 的记录
   console.log('\n📊 测试 3: 查询已完成的 generations');
-  const { data: completedGens, error: completedError, count: completedCount } = await supabase
+  const { error: completedError, count: completedCount } = await supabase
     .from('generations')
     .select('*', { count: 'exact' })
     .eq('status', 'completed');

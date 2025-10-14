@@ -6,6 +6,7 @@ export interface Profile {
   full_name?: string;
   avatar_url?: string;
   credits: number;
+  role: 'user' | 'admin';
   // 邀请相关字段（可选）
   invite_code?: string;
   invited_by?: string | null;

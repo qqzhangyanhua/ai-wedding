@@ -8,7 +8,6 @@ import { CardSkeleton } from '@/components/ui/card-skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProjects } from '@/hooks/useProjects';
 import { useEngagementStats } from '@/hooks/useEngagementStats';
-import { useImageGeneration } from '@/hooks/useImageGeneration';
 import { ProjectFilters } from './ProjectFilters';
 import type { FilterState } from '@/types/filters';
 import { ProjectActionsMenu } from './ProjectActionsMenu';
@@ -26,7 +25,7 @@ interface DashboardPageProps {
 }
 
 export function DashboardPage({ onNavigate }: DashboardPageProps) {
-  const { profile, refreshProfile, user } = useAuth();
+  const { profile, user } = useAuth();
   const { projects, loading, refreshProjects } = useProjects();
   const [activeTab, setActiveTab] = useState<'all' | 'completed'>('all');
   const { likes, downloads } = useEngagementStats();
@@ -258,81 +257,6 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
     }
   };
 
-  const handleRegenerateProject = async (project: ProjectWithTemplate) => {
-    if (!project.template) {
-      setToast({ message: '无法重新生成：缺少模板信息', type: 'error' });
-      return;
-    }
-
-    if (!profile) {
-      setToast({ message: '请先登录后再重新生成', type: 'error' });
-      return;
-    }
-
-    try {
-      setToast({ message: '开始重新生成...', type: 'success' });
-      
-      // 获取完整的模板信息以获取价格
-      const { data: fullTemplate, error: templateError } = await supabase
-        .from('templates')
-        .select('*')
-        .eq('id', project.template.id)
-        .single();
-
-      if (templateError || !fullTemplate) {
-        throw new Error('无法获取模板信息');
-      }
-
-      // 检查积分是否足够
-      if (profile.credits < fullTemplate.price_credits) {
-        setToast({ message: '积分不足，请先购买积分', type: 'error' });
-        return;
-      }
-      
-      // 这里需要创建一个新的 generation 记录
-      const { data: newGeneration, error } = await supabase
-        .from('generations')
-        .insert({
-          project_id: project.id,
-          user_id: profile.id,
-          template_id: project.template.id,
-          status: 'pending',
-          preview_images: [],
-          high_res_images: [],
-          credits_used: fullTemplate.price_credits,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // 扣除积分
-      const { error: creditError } = await supabase
-        .from('profiles')
-        .update({
-          credits: profile.credits - fullTemplate.price_credits,
-        })
-        .eq('id', profile.id);
-
-      if (creditError) throw creditError;
-
-      setToast({ message: '重新生成已开始，请稍候查看结果', type: 'success' });
-      await Promise.all([refreshProjects(), refreshProfile()]);
-      
-      // 可以选择跳转到结果页面
-      if (newGeneration?.id) {
-        setTimeout(() => {
-          onNavigate('results', undefined, newGeneration.id);
-        }, 2000);
-      }
-    } catch (error) {
-      console.error('重新生成失败:', error);
-      setToast({ 
-        message: error instanceof Error ? error.message : '重新生成失败，请重试', 
-        type: 'error' 
-      });
-    }
-  };
 
   const renderStatus = (status: string) => {
     const allowed = ['completed', 'failed'] as const;
@@ -529,9 +453,6 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
                           onDelete={() => {
                             setDeleteConfirm({ id: project.id, name: project.name });
                           }}
-                          onRegenerate={() => {
-                            handleRegenerateProject(project);
-                          }}
                           onShare={() => {
                             if (project.generation?.id) {
                               const url = `${window.location.origin}/results/${project.generation.id}`;
@@ -693,10 +614,6 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
           }}
           onEdit={() => {
             setEditingProject(selectedProject);
-            setSelectedProject(null);
-          }}
-          onRegenerate={() => {
-            handleRegenerateProject(selectedProject);
             setSelectedProject(null);
           }}
           onShare={() => {

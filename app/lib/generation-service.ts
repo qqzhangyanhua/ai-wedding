@@ -115,8 +115,17 @@ export async function generateAsAuthenticated(
       .update({ credits: profile.credits - input.template.price_credits })
       .eq('id', userId);
 
-    // 5. 构建 prompt
-    const prompt = `${input.template.name}: ${input.template.description || ''} wedding portrait, high quality, cinematic lighting`;
+    // 5. 构建优化的 prompt - 强调保留五官特征
+    const baseDescription = input.template.description || input.template.name;
+    const prompt = `Create a professional wedding portrait with the following requirements:
+- Scene: ${baseDescription}
+- Style: High quality, cinematic lighting, professional photography
+- CRITICAL: Preserve and maintain the exact facial features, face shape, eyes, nose, mouth, and overall appearance from the reference photo
+- CRITICAL: Keep the person's identity perfectly recognizable, do not alter facial characteristics
+- CRITICAL: Only change the background, lighting, clothing, and scene composition
+- Quality: Ultra-high resolution, sharp focus on face, natural skin texture
+Generate a stunning wedding photo that captures the romantic atmosphere while preserving the person's authentic appearance.`;
+
 
     onProgress({ stage: 'generating', progress: 40 });
 
@@ -184,7 +193,7 @@ export async function generateAsAuthenticated(
           if (parsed.choices?.[0]?.finish_reason === 'stop') {
             break;
           }
-        } catch (e) {
+        } catch {
           // 忽略解析错误
         }
       }

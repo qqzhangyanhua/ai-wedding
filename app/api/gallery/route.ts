@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+// 该路由使用了 request.nextUrl.searchParams，强制动态渲染以避免构建期静态分析报错
+export const dynamic = 'force-dynamic';
 import { supabase } from '@/lib/supabase';
 import type { GalleryItem } from '@/types/database';
 
@@ -34,7 +36,16 @@ export async function GET(request: NextRequest) {
     }
 
     // 转换为画廊项目格式
-    const galleryItems: GalleryItem[] = generations.map((gen: any) => ({
+    type GenerationRow = {
+      id: string;
+      preview_images: string[] | null;
+      created_at: string;
+      project?: { name?: string } | null;
+      template?: { name?: string } | null;
+      user?: { full_name?: string } | null;
+    };
+    const gens = (generations || []) as unknown as GenerationRow[];
+    const galleryItems: GalleryItem[] = gens.map((gen) => ({
       id: gen.id,
       preview_images: gen.preview_images || [],
       project_name: gen.project?.name || '未命名项目',

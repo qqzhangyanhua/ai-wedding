@@ -25,7 +25,12 @@
       "Bash(node test-supabase-direct.js)",
       "Bash(python3 -m json.tool)",
       "Bash(node test-completed-data.js)",
-      "Bash(node check-generation-details.js)"
+      "Bash(node check-generation-details.js)",
+      "Bash(git commit:*)",
+      "Bash(npx tsc:*)",
+      "Bash(pnpm exec tsc:*)",
+      "Bash(pnpm build:*)",
+      "Bash(pnpm dlx shadcn@latest add:*)"
     ],
     "deny": [],
     "ask": []

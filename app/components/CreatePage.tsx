@@ -50,7 +50,7 @@ export function CreatePage({ onNavigate, selectedTemplate }: CreatePageProps) {
           type: 'success',
         });
       }
-    } catch (error) {
+    } catch {
       setToast({ message: '生成失败,请查看详情并重试', type: 'error' });
     }
   };

@@ -7,12 +7,7 @@
 import { useReducer, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Template } from '@/types/database';
-import {
-  GenerationState,
-  GenerationAction,
-  generationReducer,
-  SavedGenerationState,
-} from '@/types/generation';
+import { generationReducer, SavedGenerationState } from '@/types/generation';
 import {
   generateAsGuest,
   generateAsAuthenticated,

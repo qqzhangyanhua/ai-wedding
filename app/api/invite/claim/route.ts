@@ -76,8 +76,8 @@ export async function POST(req: NextRequest) {
     }
 
     return new Response(JSON.stringify({ ok: true }), { status: 200 });
-  } catch (e: any) {
-    return new Response(JSON.stringify({ error: e?.message || 'Unexpected error' }), { status: 500 });
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : 'Unexpected error';
+    return new Response(JSON.stringify({ error: message }), { status: 500 });
   }
 }
-

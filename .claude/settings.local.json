@@ -30,7 +30,9 @@
       "Bash(npx tsc:*)",
       "Bash(pnpm exec tsc:*)",
       "Bash(pnpm build:*)",
-      "Bash(pnpm dlx shadcn@latest add:*)"
+      "Bash(pnpm dlx shadcn@latest add:*)",
+      "Bash(node test-prompt-optimization.js)",
+      "Bash(node test-face-preservation.js)"
     ],
     "deny": [],
     "ask": []

@@ -9,6 +9,8 @@ export interface TemplateFormInput {
   category: 'location' | 'fantasy' | 'artistic' | 'classic';
   preview_image_url: string;
   prompt_config: PromptConfig;
+  // 新增：多提示词（可选）
+  prompt_list?: string[];
   price_credits: number;
   is_active: boolean;
   sort_order: number;
@@ -23,6 +25,7 @@ export interface CreateTemplatePayload {
   category: string;
   preview_image_url: string;
   prompt_config: PromptConfig;
+  prompt_list?: string[];
   price_credits: number;
   is_active: boolean;
   sort_order: number;

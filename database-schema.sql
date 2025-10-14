@@ -32,6 +32,8 @@ CREATE TABLE IF NOT EXISTS templates (
   category text NOT NULL,
   preview_image_url text,
   prompt_config jsonb DEFAULT '{}',
+  -- 多提示词列表（每条为独立基础提示词）；为空表示使用单一基础提示词
+  prompt_list jsonb DEFAULT '[]',
   price_credits integer DEFAULT 10,
   is_active boolean DEFAULT true,
   sort_order integer DEFAULT 0,

@@ -122,10 +122,19 @@ export default function AdminTemplatesPage() {
     }
   };
 
+  // 计算提示词数量（仅展示用）
+  const getPromptCount = (t: Template) => {
+    const anyT = t as any;
+    const list: string[] = Array.isArray(anyT?.prompt_list) ? anyT.prompt_list : [];
+    if (list.length > 0) return list.length;
+    if (t.prompt_config?.basePrompt && t.prompt_config.basePrompt.trim().length > 0) return 1;
+    return 1;
+  };
+
   if (error) {
     return (
       <AdminLayout>
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+        <div className="p-4 text-red-800 bg-red-50 rounded-lg border border-red-200">
           {error}
         </div>
       </AdminLayout>
@@ -143,31 +152,31 @@ export default function AdminTemplatesPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold">模板管理</h1>
             <p className="text-muted-foreground">管理 AI 生成模板</p>
           </div>
           <Link href="/admin/templates/new">
             <Button>
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="mr-2 w-4 h-4" />
               新建模板
             </Button>
           </Link>
         </div>
 
         {isLoading ? (
-          <div className="text-center py-12">加载中...</div>
+          <div className="py-12 text-center">加载中...</div>
         ) : templates.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">暂无模板，创建你的第一个模板吧。</div>
+          <div className="py-12 text-center text-muted-foreground">暂无模板，创建你的第一个模板吧。</div>
         ) : (
           <div className="grid gap-4">
             {templates.map((template) => (
               <div
                 key={template.id}
-                className="flex items-center gap-4 rounded-lg border p-4"
+                className="flex gap-4 items-center p-4 rounded-lg border"
               >
-                <div className="relative h-20 w-32 flex-shrink-0 overflow-hidden rounded">
+                <div className="overflow-hidden relative flex-shrink-0 w-32 h-20 rounded">
                   <Image
                     src={template.preview_image_url}
                     alt={template.name}
@@ -178,20 +187,21 @@ export default function AdminTemplatesPage() {
                 </div>
 
                 <div className="flex-1">
-                  <div className="flex items-start justify-between">
+                  <div className="flex justify-between items-start">
                     <div>
                       <h3 className="font-semibold">{template.name}</h3>
                       <p className="text-sm text-muted-foreground">
                         {template.description}
                       </p>
-                      <div className="mt-1 flex items-center gap-4 text-xs text-muted-foreground">
+                      <div className="flex gap-4 items-center mt-1 text-xs text-muted-foreground">
                         <span>{CATEGORY_LABELS[template.category] ?? template.category}</span>
                         <span>{template.price_credits} 积分</span>
                         <span>排序：{template.sort_order}</span>
+                        <span>提示词：{getPromptCount(template)}</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex gap-2 items-center">
                       <Button
                         variant="ghost"
                         size="icon"
@@ -199,15 +209,15 @@ export default function AdminTemplatesPage() {
                         title={template.is_active ? '停用' : '启用'}
                       >
                         {template.is_active ? (
-                          <Eye className="h-4 w-4" />
+                          <Eye className="w-4 h-4" />
                         ) : (
-                          <EyeOff className="h-4 w-4" />
+                          <EyeOff className="w-4 h-4" />
                         )}
                       </Button>
 
                       <Link href={`/admin/templates/${template.id}`}>
                         <Button variant="ghost" size="icon" title="编辑">
-                          <Edit className="h-4 w-4" />
+                          <Edit className="w-4 h-4" />
                         </Button>
                       </Link>
 
@@ -217,7 +227,7 @@ export default function AdminTemplatesPage() {
                         onClick={() => handleDelete(template.id)}
                         title="删除"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>

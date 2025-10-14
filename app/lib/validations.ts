@@ -45,7 +45,7 @@ export const GenerateImageSchema = z.object({
   prompt: z
     .string()
     .min(1, 'Prompt不能为空')
-    .max(800, 'Prompt不能超过800个字符'),
+    .max(1500, 'Prompt不能超过1500个字符'),
   n: z.number().int().min(1).max(8).default(1),
   size: z.enum(['256x256', '512x512', '1024x1024']).default('1024x1024'),
   response_format: z.enum(['url', 'b64_json']).default('url'),

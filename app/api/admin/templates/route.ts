@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
         category: body.category,
         preview_image_url: body.preview_image_url,
         prompt_config: body.prompt_config || {},
+        prompt_list: body.prompt_list || [],
         price_credits: body.price_credits || 10,
         is_active: body.is_active !== undefined ? body.is_active : true,
         sort_order: body.sort_order || 0,

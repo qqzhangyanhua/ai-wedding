@@ -17,6 +17,34 @@ const RL_LIMIT = 5; // 每分钟 5 次
 type RLRecord = { windowStart: number; count: number };
 const rateBucket = new Map<string, RLRecord>();
 
+/**
+ * 将用户输入的提示词包裹为标准模板，以匹配成功案例格式。
+ * - 若用户已包含关键锚点（如 STRICT REQUIREMENTS / SPECIFIC EDITING REQUEST），则不重复包裹。
+ * - 固定英文模板，保障上游模型对"人脸保持"等要求的严格遵循。
+ * - 参考demo处理方式，保持提示词完整性，不进行截断。
+ */
+function composePrompt(userPrompt: string): string {
+  const p = (userPrompt || '').trim();
+  // 若已包含模板关键字，则原样返回，避免重复注入
+  const hasTemplate = /STRICT REQUIREMENTS|Please edit the provided original image|SPECIFIC EDITING REQUEST/i.test(p);
+  if (hasTemplate) return p;
+
+  const FACE_PRESERVATION =
+    'STRICT REQUIREMENTS:\n' +
+    '1. ABSOLUTELY preserve all facial features, facial contours, eye shape, nose shape, mouth shape, and all key characteristics from the original image\n' +
+    "2. Maintain the person's basic facial structure and proportions COMPLETELY unchanged\n" +
+    '3. Ensure the person in the edited image is 100% recognizable as the same individual\n' +
+    '4. NO changes to any facial details including skin texture, moles, scars, or other distinctive features\n' +
+    '5. If style conversion is involved, MUST maintain facial realism and accuracy\n' +
+    '6. Focus ONLY on non-facial modifications as requested';
+
+  const INTRO = 'Please edit the provided original image based on the following guidelines:';
+  const CLOSING = "Please focus your modifications ONLY on the user's specific requirements while strictly following the face preservation guidelines above. Generate a high-quality edited image that maintains facial identity.";
+
+  // 参考demo方式：保持用户输入完整性，不进行长度截断
+  return `${INTRO}\n\n${FACE_PRESERVATION}\n\nSPECIFIC EDITING REQUEST: ${p}\n\n${CLOSING}`;
+}
+
 export async function POST(req: Request) {
   const requestId = `stream_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   console.log(`[${requestId}] ========== 开始处理流式图片生成请求 ==========`);
@@ -123,28 +151,38 @@ export async function POST(req: Request) {
       | { type: 'text'; text: string }
       | { type: 'image_url'; image_url: { url: string } };
 
-    const chatContent: ChatContentItem[] = [{ type: 'text', text: prompt.trim() }];
+    // 使用模板化提示词，确保满足成功案例的提示词格式
+    const composedPrompt = composePrompt(prompt);
+    const chatContent: ChatContentItem[] = [{ type: 'text', text: composedPrompt }];
 
-    // 添加图片输入（最多3张）
+    // 添加图片输入（最多3张）：支持 dataURL 与 http(s) URL
     if (Array.isArray(image_inputs)) {
       const picked = image_inputs
-        .filter((s) => typeof s === 'string' && s.startsWith('data:image/'))
+        .filter((s) =>
+          typeof s === 'string' &&
+          (s.startsWith('data:image/') || s.startsWith('http://') || s.startsWith('https://'))
+        )
         .slice(0, 3);
       console.log(`[${requestId}] 图片输入: ${picked.length} 张`);
-      for (const dataUrl of picked) {
-        const preview = dataUrl.substring(0, 50) + '...' + dataUrl.substring(dataUrl.length - 20);
+      for (const url of picked) {
+        let preview = '';
+        if (url.startsWith('data:image/')) {
+          preview = url.substring(0, 50) + '...' + url.substring(url.length - 20);
+        } else {
+          preview = url.substring(0, 100) + (url.length > 100 ? '...' : '');
+        }
         console.log(`[${requestId}]   - 图片: ${preview}`);
-        chatContent.push({ type: 'image_url', image_url: { url: dataUrl } });
+        chatContent.push({ type: 'image_url', image_url: { url } });
       }
     } else {
       console.log(`[${requestId}] 无图片输入`);
     }
 
-    // 【重要】完全参考 demo 的请求格式
+    // 【重要】参考 demo 优化参数 - 使用保守的 temperature 和 top_p 以提高人脸保持准确度
     const requestData = {
       model: model || IMAGE_CHAT_MODEL,
-      temperature: 1,
-      top_p: 1,
+      temperature: 0.2, // 保守模式：降低随机性，提高稳定性和人脸保持准确度（demo 推荐值）
+      top_p: 0.7,       // 保守模式：限制采样范围，避免生成过于发散的结果（demo 推荐值）
       messages: [
         {
           role: 'user',
@@ -159,16 +197,34 @@ export async function POST(req: Request) {
 
     // 调用上游 API
     const endpoint = `${IMAGE_API_BASE_URL.replace(/\/$/, '')}/v1/chat/completions`;
-    console.log(`[${requestId}] API 端点: ${endpoint}`);
-    console.log(`[${requestId}] 📤 发送流式请求到上游 API:`, {
-      endpoint,
-      model: requestData.model,
-      temperature: requestData.temperature,
-      top_p: requestData.top_p,
-      messages_count: requestData.messages.length,
-      content_items: requestData.messages[0].content.length,
-      stream: requestData.stream,
+
+   
+
+    // 打印完整的 prompt 文本（用于对比）
+    const textContent = requestData.messages[0].content.find(
+      (item): item is { type: 'text'; text: string } => item.type === 'text'
+    );
+    if (textContent) {
+      console.log(`[${requestId}] ---------- 完整 Prompt Text ----------`);
+      console.log(textContent.text);
+      console.log(`[${requestId}] ---------- Prompt 长度: ${textContent.text.length} 字符 ----------`);
+    }
+
+    // 打印 content 结构（隐藏 base64 详情）
+    console.log(`[${requestId}] ---------- Content 结构 ----------`);
+    requestData.messages[0].content.forEach((item, idx) => {
+      if (item.type === 'text') {
+        console.log(`[${requestId}]   [${idx}] type: "text", length: ${item.text.length} 字符`);
+      } else if (item.type === 'image_url') {
+        const urlPreview = item.image_url.url.substring(0, 50) + '...[base64 data]';
+        console.log(`[${requestId}]   [${idx}] type: "image_url", url: ${urlPreview}`);
+      }
     });
+
+  
+
+    console.log(`[${JSON.stringify(requestData)}] ========== 开始发送请求入参 ==========`);
+    // ==================== 日志结束 ====================
 
     const fetchStartTime = Date.now();
     const upstreamResponse = await fetch(endpoint, {
@@ -222,4 +278,3 @@ export async function POST(req: Request) {
     );
   }
 }
-

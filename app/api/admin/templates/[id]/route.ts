@@ -42,6 +42,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
   if (body.category !== undefined) updateData.category = body.category;
   if (body.preview_image_url !== undefined) updateData.preview_image_url = body.preview_image_url;
   if (body.prompt_config !== undefined) updateData.prompt_config = body.prompt_config;
+  if (body.prompt_list !== undefined) updateData.prompt_list = body.prompt_list;
   if (body.price_credits !== undefined) updateData.price_credits = body.price_credits;
   if (body.is_active !== undefined) updateData.is_active = body.is_active;
   if (body.sort_order !== undefined) updateData.sort_order = body.sort_order;

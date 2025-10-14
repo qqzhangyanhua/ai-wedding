@@ -35,6 +35,8 @@ export interface Template {
   category: 'location' | 'fantasy' | 'artistic' | 'classic';
   preview_image_url: string;
   prompt_config: PromptConfig;
+  // 多提示词（可选），为空时按单提示词处理
+  prompt_list?: string[];
   price_credits: number;
   is_active: boolean;
   sort_order: number;

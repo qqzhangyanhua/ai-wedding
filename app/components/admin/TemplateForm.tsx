@@ -18,6 +18,7 @@ import type { Template, PromptConfig } from '@/types/database';
 import type { TemplateFormInput } from '@/types/admin';
 import { ImageUploadField } from './ImageUploadField';
 import { PromptConfigEditor } from './PromptConfigEditor';
+import { PromptListEditor } from './PromptListEditor';
 
 interface TemplateFormProps {
   template?: Template;
@@ -44,6 +45,7 @@ export function TemplateForm({ template, onSubmit, onCancel }: TemplateFormProps
       styleModifiers: [],
       negativePrompt: '',
     },
+    prompt_list: template?.prompt_list || [],
     price_credits: template?.price_credits || 10,
     is_active: template?.is_active !== undefined ? template.is_active : true,
     sort_order: template?.sort_order || 0,
@@ -76,6 +78,10 @@ export function TemplateForm({ template, onSubmit, onCancel }: TemplateFormProps
 
   const updatePromptConfig = (config: PromptConfig) => {
     setFormData((prev) => ({ ...prev, prompt_config: config }));
+  };
+
+  const updatePromptList = (list: string[]) => {
+    setFormData((prev) => ({ ...prev, prompt_list: list }));
   };
 
   return (
@@ -139,6 +145,11 @@ export function TemplateForm({ template, onSubmit, onCancel }: TemplateFormProps
       <PromptConfigEditor
         config={formData.prompt_config}
         onChange={updatePromptConfig}
+      />
+
+      <PromptListEditor
+        value={formData.prompt_list || []}
+        onChange={updatePromptList}
       />
 
       <div className="grid gap-6 md:grid-cols-3">

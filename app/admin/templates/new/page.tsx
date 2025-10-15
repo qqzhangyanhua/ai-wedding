@@ -42,7 +42,7 @@ export default function NewTemplatePage() {
 
   return (
     <AdminLayout>
-      <div className="max-w-4xl space-y-6">
+      <div className="p-4 space-y-6 max-w-4xl">
         <div>
           <h1 className="text-3xl font-bold">创建新模板</h1>
           <p className="text-muted-foreground">在平台中添加新的 AI 生成模板</p>

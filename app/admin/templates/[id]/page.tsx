@@ -96,7 +96,7 @@ export default function EditTemplatePage() {
   if (error) {
     return (
       <AdminLayout>
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+        <div className="p-4 text-red-800 bg-red-50 rounded-lg border border-red-200">
           {error}
         </div>
       </AdminLayout>
@@ -106,7 +106,7 @@ export default function EditTemplatePage() {
   if (isLoading) {
     return (
       <AdminLayout>
-        <div className="text-center py-12">加载中...</div>
+        <div className="py-12 text-center">加载中...</div>
       </AdminLayout>
     );
   }
@@ -114,7 +114,7 @@ export default function EditTemplatePage() {
   if (!template) {
     return (
       <AdminLayout>
-        <div className="text-center py-12 text-muted-foreground">
+        <div className="py-12 text-center text-muted-foreground">
           未找到模板
         </div>
       </AdminLayout>
@@ -123,7 +123,7 @@ export default function EditTemplatePage() {
 
   return (
     <AdminLayout>
-      <div className="max-w-4xl space-y-6">
+      <div className="p-4 space-y-6 max-w-4xl">
         <div>
           <h1 className="text-3xl font-bold">编辑模板</h1>
           <p className="text-muted-foreground">更新模板：{template.name}</p>

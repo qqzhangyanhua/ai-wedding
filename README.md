@@ -25,6 +25,32 @@ ai-wedding
      - `SUPABASE_SERVICE_ROLE_KEY`（仅服务端使用）
      - `STRIPE_WEBHOOK_SECRET`（如接入 Stripe Webhook）
 
+Google 登录集成（Supabase OAuth）
+1) 在 Google Cloud Console 配置 OAuth
+   - 创建项目 → OAuth 同意屏幕（外部/测试均可）→ 添加测试用户（开发阶段可选）
+   - 创建“OAuth 2.0 客户端 ID”（应用类型：网页应用）
+   - 授权重定向 URI：`https://<your-supabase-project-ref>.supabase.co/auth/v1/callback`
+   - 记录 Client ID 与 Client Secret
+
+2) 在 Supabase 启用 Google Provider
+   - Supabase 控制台 → Authentication → Providers → Google
+   - 填入 Google 的 Client ID / Client Secret 并启用
+   - Authentication → URL Configuration：
+     - `Site URL`：本地开发 `http://localhost:3000`（生产填你的域名）
+     - `Redirect URLs` 允许列表：
+       - `http://localhost:3000/auth/callback`
+       - `https://your-domain.com/auth/callback`
+
+3) 前端使用方式
+   - 登录弹窗新增“使用 Google 登录”按钮（`app/components/AuthModal.tsx`）
+   - 触发 `supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: '/auth/callback?redirect=<当前页>' } })`
+   - 回跳页面：`app/auth/callback/page.tsx` 会调用 `exchangeCodeForSession` 完成会话落地，并重定向回来源页
+
+4) 验证
+   - 本地 `npm run dev` 后打开页面，点击“使用 Google 登录”
+   - 完成 Google 认证后回到 `/auth/callback`，自动跳转回原页面
+   - 右上角或需要登录的页面应显示已登录态，服务端 API 调用会携带 `Authorization: Bearer <token>`
+
 3) 初始化数据库（可选但推荐）
    - 将根目录 `database-schema.sql` 中的 SQL 在 Supabase SQL Editor 执行
    - 包含 RLS 策略、索引与示例模板数据

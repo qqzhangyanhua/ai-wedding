@@ -7,7 +7,7 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ onClose }: AuthModalProps) {
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, signInWithGoogle } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -53,6 +53,29 @@ export function AuthModal({ onClose }: AuthModalProps) {
           <p className="text-stone mb-6">
             {isLogin ? '登录以访问您的项目' : '开始创作精美婚纱照'}
           </p>
+
+          {/* 第三方登录区域 */}
+          <div className="space-y-3">
+            <button
+              onClick={() => {
+                setError('');
+                // 使用 Google 登录，回跳到当前页面
+                signInWithGoogle().catch((e) => setError(e?.message || '跳转到 Google 登录失败'));
+              }}
+              className="w-full py-3 bg-white text-navy border border-stone/20 rounded-md hover:bg-champagne transition-all duration-300 font-medium shadow-sm hover:shadow-md flex items-center justify-center gap-2"
+              type="button"
+            >
+              {/* 简单的 Google G 标识（避免引新依赖） */}
+              <span className="inline-block w-5 h-5 rounded-full bg-gradient-to-br from-[#4285F4] via-[#EA4335] to-[#FBBC05]" />
+              使用 Google 登录
+            </button>
+          </div>
+
+          <div className="my-6 flex items-center gap-4">
+            <div className="flex-1 h-px bg-stone/20" />
+            <span className="text-xs text-stone">或使用邮箱{isLogin ? '登录' : '注册'}</span>
+            <div className="flex-1 h-px bg-stone/20" />
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (

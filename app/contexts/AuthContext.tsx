@@ -11,6 +11,8 @@ interface AuthContextType {
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  // 使用第三方登录（目前接入 Google）
+  signInWithGoogle: (redirectPath?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -142,8 +144,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signInWithGoogle = async (redirectPath?: string) => {
+    // 仅在浏览器环境下执行重定向
+    if (typeof window === 'undefined') return;
+    const origin = window.location.origin;
+    const redirect = redirectPath || window.location.pathname + window.location.search;
+    const redirectTo = `${origin}/auth/callback?redirect=${encodeURIComponent(redirect)}`;
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo,
+      },
+    });
+    if (error) throw error;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut, refreshProfile, signInWithGoogle }}>
       {children}
     </AuthContext.Provider>
   );

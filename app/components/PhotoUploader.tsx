@@ -8,8 +8,8 @@
  * 3. 单一职责：仅负责组合和布局
  */
 
-import { useState } from 'react';
-import { AlertCircle, AlertTriangle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { AlertCircle, AlertTriangle, XCircle } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -33,8 +33,17 @@ import { PhotoUploadZone } from './photo-uploader/PhotoUploadZone';
 import { PhotoUploadGuide } from './photo-uploader/PhotoUploadGuide';
 import { PhotoGuideModal } from './PhotoGuideModal';
 import { ConfirmDialog } from './ConfirmDialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
-export function PhotoUploader({ photos, onChange, maxPhotos = 10, minPhotos = 1 }: PhotoUploaderProps) {
+export function PhotoUploader({ photos, onChange, onIdentifyErrorCountChange, maxPhotos = 10, minPhotos = 1 }: PhotoUploaderProps) {
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showDeletePoorConfirm, setShowDeletePoorConfirm] = useState(false);
@@ -43,6 +52,10 @@ export function PhotoUploader({ photos, onChange, maxPhotos = 10, minPhotos = 1 
     photosWithQuality,
     isAnalyzing,
     poorQualityCount,
+    identifyErrors,
+    identifyErrorCount,
+    criticalError,
+    clearCriticalError,
     handleFileSelect,
     removePhoto,
     reorderPhotos,
@@ -78,6 +91,13 @@ export function PhotoUploader({ photos, onChange, maxPhotos = 10, minPhotos = 1 
 
   // 同步外部 photos 状态
   syncPhotos(photos);
+
+  // 通知父组件识别错误数量变化
+  useEffect(() => {
+    if (onIdentifyErrorCountChange) {
+      onIdentifyErrorCountChange(identifyErrorCount);
+    }
+  }, [identifyErrorCount, onIdentifyErrorCountChange]);
 
   return (
     <div className="space-y-4">
@@ -143,7 +163,24 @@ export function PhotoUploader({ photos, onChange, maxPhotos = 10, minPhotos = 1 
       {isAnalyzing && (
         <div className="text-sm text-blue-600 font-medium flex items-center gap-2">
           <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-          正在分析照片质量...
+          正在验证和分析照片...
+        </div>
+      )}
+
+      {identifyErrorCount > 0 && (
+        <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-xl">
+          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-red-800">
+            <p className="font-medium">发现 {identifyErrorCount} 张照片未检测到人物</p>
+            <p>这些照片未上传到服务器，请删除并重新上传包含人物的照片</p>
+            <ul className="mt-2 space-y-1">
+              {Array.from(identifyErrors.entries()).map(([index, error]) => (
+                <li key={index} className="text-xs">
+                  • 第 {index + 1} 张: {error}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       )}
 
@@ -170,6 +207,7 @@ export function PhotoUploader({ photos, onChange, maxPhotos = 10, minPhotos = 1 
                 isSelectionMode={isSelectionMode}
                 isSelected={selectedIndices.has(index)}
                 onToggleSelection={toggleSelection}
+                identifyError={identifyErrors.get(index)}
               />
             ))}
             {photos.length < maxPhotos && <PhotoUploadZone onFileSelect={handleFileSelect} />}
@@ -216,6 +254,38 @@ export function PhotoUploader({ photos, onChange, maxPhotos = 10, minPhotos = 1 
         }}
         onCancel={() => setShowDeletePoorConfirm(false)}
       />
+
+      {/* 识别服务错误弹窗 */}
+      <AlertDialog open={!!criticalError} onOpenChange={(open) => !open && clearCriticalError()}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100">
+                <XCircle className="w-6 h-6 text-red-600" />
+              </div>
+              <AlertDialogTitle className="text-xl">识别服务失败</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-base text-gray-700">
+              <div className="space-y-3">
+                <p>照片识别服务暂时不可用，无法验证照片是否包含人物。</p>
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm font-medium text-red-900 mb-1">错误详情：</p>
+                  <p className="text-sm text-red-800 font-mono break-all">{criticalError}</p>
+                </div>
+                <p className="text-sm">请稍后重试，或联系管理员检查识别服务配置。</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction
+              onClick={clearCriticalError}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-500"
+            >
+              我知道了
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

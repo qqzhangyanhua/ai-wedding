@@ -20,23 +20,23 @@ export function Header({ onNavigate, currentPage }: HeaderProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-ivory/98 backdrop-blur-md border-b border-stone/10 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-18">
-            <div className="flex items-center gap-8">
+      <header className="sticky top-0 z-50 border-b shadow-sm backdrop-blur-md bg-ivory/98 border-stone/10">
+        <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-18">
+            <div className="flex gap-8 items-center">
               <button
                 onClick={() => onNavigate('home')}
                 className="flex items-center gap-2.5"
               >
-                <div className="w-9 h-9 bg-gradient-to-br from-rose-gold to-dusty-rose rounded-lg flex items-center justify-center shadow-sm">
+                <div className="flex justify-center items-center w-9 h-9 bg-gradient-to-br rounded-lg shadow-sm from-rose-gold to-dusty-rose">
                   <Camera className="w-5 h-5 text-ivory" />
                 </div>
-                <span className="text-xl font-display font-medium text-navy tracking-tight">
+                <span className="text-xl font-medium tracking-tight font-display text-navy">
                   AI婚纱照
                 </span>
               </button>
 
-              <nav className="hidden md:flex items-center gap-8">
+              <nav className="hidden gap-8 items-center md:flex">
                 <button
                   onClick={() => onNavigate('templates')}
                   className={`text-sm font-medium tracking-wide transition-colors duration-200 ${
@@ -82,7 +82,7 @@ export function Header({ onNavigate, currentPage }: HeaderProps) {
               </nav>
             </div>
 
-            <div className="hidden md:flex items-center gap-4">
+            <div className="hidden gap-4 items-center md:flex">
               {user ? (
                 <>
                   <div className="flex items-center gap-2.5 px-4 py-2 bg-champagne border border-stone/10 rounded-full shadow-sm">
@@ -91,14 +91,14 @@ export function Header({ onNavigate, currentPage }: HeaderProps) {
                   </div>
                   <button
                     onClick={() => onNavigate('dashboard')}
-                    className="flex items-center gap-2 px-4 py-2 text-stone hover:text-navy hover:bg-champagne rounded-md transition-all duration-200"
+                    className="flex gap-2 items-center px-4 py-2 rounded-md transition-all duration-200 text-stone hover:text-navy hover:bg-champagne"
                   >
                     <User className="w-4 h-4" />
                     <span className="text-sm font-medium">{profile?.full_name || '账户'}</span>
                   </button>
                   <button
                     onClick={handleSignOut}
-                    className="flex items-center gap-2 px-4 py-2 text-stone hover:text-navy hover:bg-champagne rounded-md transition-all duration-200"
+                    className="flex gap-2 items-center px-4 py-2 rounded-md transition-all duration-200 text-stone hover:text-navy hover:bg-champagne"
                   >
                     <LogOut className="w-4 h-4" />
                     <span className="text-sm font-medium">退出</span>
@@ -117,7 +117,7 @@ export function Header({ onNavigate, currentPage }: HeaderProps) {
 
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 text-stone hover:text-navy transition-colors"
+              className="p-2 transition-colors md:hidden text-stone hover:text-navy"
               aria-label={mobileMenuOpen ? '关闭菜单' : '打开菜单'}
               aria-expanded={mobileMenuOpen}
             >
@@ -127,14 +127,14 @@ export function Header({ onNavigate, currentPage }: HeaderProps) {
         </div>
 
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-stone/10 bg-ivory">
+          <div className="border-t md:hidden border-stone/10 bg-ivory">
             <nav className="px-4 py-4 space-y-2">
               <button
                 onClick={() => {
                   onNavigate('templates');
                   setMobileMenuOpen(false);
                 }}
-                className="w-full text-left px-4 py-2 text-sm font-medium text-stone hover:text-navy hover:bg-champagne rounded-md transition-colors"
+                className="px-4 py-2 w-full text-sm font-medium text-left rounded-md transition-colors text-stone hover:text-navy hover:bg-champagne"
               >
                 模板
               </button>
@@ -143,7 +143,7 @@ export function Header({ onNavigate, currentPage }: HeaderProps) {
                   onNavigate('gallery');
                   setMobileMenuOpen(false);
                 }}
-                className="w-full text-left px-4 py-2 text-sm font-medium text-stone hover:text-navy hover:bg-champagne rounded-md transition-colors"
+                className="px-4 py-2 w-full text-sm font-medium text-left rounded-md transition-colors text-stone hover:text-navy hover:bg-champagne"
               >
                 画廊
               </button>
@@ -152,14 +152,14 @@ export function Header({ onNavigate, currentPage }: HeaderProps) {
                   onNavigate('pricing');
                   setMobileMenuOpen(false);
                 }}
-                className="w-full text-left px-4 py-2 text-sm font-medium text-stone hover:text-navy hover:bg-champagne rounded-md transition-colors"
+                className="px-4 py-2 w-full text-sm font-medium text-left rounded-md transition-colors text-stone hover:text-navy hover:bg-champagne"
               >
                 价格
               </button>
               <a
                 href="/testimonials"
                 onClick={() => setMobileMenuOpen(false)}
-                className="block w-full text-left px-4 py-2 text-sm font-medium text-stone hover:text-navy hover:bg-champagne rounded-md transition-colors"
+                className="block px-4 py-2 w-full text-sm font-medium text-left rounded-md transition-colors text-stone hover:text-navy hover:bg-champagne"
               >
                 案例
               </a>
@@ -176,13 +176,13 @@ export function Header({ onNavigate, currentPage }: HeaderProps) {
                       onNavigate('dashboard');
                       setMobileMenuOpen(false);
                     }}
-                    className="w-full text-left px-4 py-2 text-sm font-medium text-stone hover:text-navy hover:bg-champagne rounded-md transition-colors"
+                    className="px-4 py-2 w-full text-sm font-medium text-left rounded-md transition-colors text-stone hover:text-navy hover:bg-champagne"
                   >
                     我的项目
                   </button>
                   <button
                     onClick={handleSignOut}
-                    className="w-full text-left px-4 py-2 text-sm font-medium text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                    className="px-4 py-2 w-full text-sm font-medium text-left rounded-md transition-colors text-destructive hover:bg-destructive/10"
                   >
                     退出登录
                   </button>
@@ -193,7 +193,7 @@ export function Header({ onNavigate, currentPage }: HeaderProps) {
                     setShowAuthModal(true);
                     setMobileMenuOpen(false);
                   }}
-                  className="w-full px-4 py-2 bg-navy text-ivory rounded-md hover:bg-navy/90 font-medium transition-colors"
+                  className="px-4 py-2 w-full font-medium rounded-md transition-colors bg-navy text-ivory hover:bg-navy/90"
                 >
                   开始使用
                 </button>

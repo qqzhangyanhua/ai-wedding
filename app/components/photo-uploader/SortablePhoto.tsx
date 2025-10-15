@@ -12,6 +12,7 @@ export function SortablePhoto({
   isSelectionMode,
   isSelected,
   onToggleSelection,
+  identifyError,
 }: SortablePhotoProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
@@ -54,9 +55,9 @@ export function SortablePhoto({
       className={`relative aspect-square rounded-xl overflow-hidden group ${
         isSelectionMode ? 'cursor-pointer' : 'cursor-move'
       } ${isDragging ? 'z-50 shadow-2xl' : ''} ${
-        quality?.status === 'poor' ? 'ring-2 ring-red-400' : ''
+        identifyError ? 'ring-4 ring-red-500' : quality?.status === 'poor' ? 'ring-2 ring-red-400' : ''
       } ${isSelected ? 'ring-4 ring-blue-500' : ''}`}
-      title={quality?.issues.join(', ') || '质量良好'}
+      title={identifyError || quality?.issues.join(', ') || '质量良好'}
     >
       <Image
         src={photo.dataUrl}
@@ -101,7 +102,14 @@ export function SortablePhoto({
         {index + 1}
       </div>
 
-      {quality && quality.status !== 'excellent' && !isSelectionMode && (
+      {identifyError && !isSelectionMode && (
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-red-900/90 to-transparent p-2">
+          <p className="text-xs text-white font-bold">⚠️ 未检测到人物</p>
+          <p className="text-xs text-white/90">{identifyError}</p>
+        </div>
+      )}
+
+      {!identifyError && quality && quality.status !== 'excellent' && !isSelectionMode && (
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <p className="text-xs text-white font-medium">{quality.issues.join(', ')}</p>
         </div>

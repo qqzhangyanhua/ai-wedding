@@ -16,6 +16,9 @@ export default function HeaderBridge() {
       case 'templates':
         router.push('/templates');
         break;
+      case 'gallery':
+        router.push('/gallery');
+        break;
       case 'create':
         router.push('/create');
         break;
@@ -36,6 +39,7 @@ export default function HeaderBridge() {
   const currentPage = (() => {
     if (pathname === '/') return 'home';
     if (pathname?.startsWith('/templates')) return 'templates';
+    if (pathname?.startsWith('/gallery')) return 'gallery';
     if (pathname?.startsWith('/create')) return 'create';
     if (pathname?.startsWith('/pricing')) return 'pricing';
     if (pathname?.startsWith('/dashboard')) return 'dashboard';

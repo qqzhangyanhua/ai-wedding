@@ -9,6 +9,7 @@ export interface PhotoWithQuality {
 export interface PhotoUploaderProps {
   photos: string[];
   onChange: (photos: string[]) => void;
+  onIdentifyErrorCountChange?: (count: number) => void;
   maxPhotos?: number;
   minPhotos?: number;
 }
@@ -21,4 +22,5 @@ export interface SortablePhotoProps {
   isSelectionMode: boolean;
   isSelected: boolean;
   onToggleSelection: (index: number) => void;
+  identifyError?: string;
 }

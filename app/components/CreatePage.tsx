@@ -32,6 +32,7 @@ export function CreatePage({ onNavigate, selectedTemplate }: CreatePageProps) {
   const [projectName, setProjectName] = useState('');
   const [shareToGallery, setShareToGallery] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [identifyErrorCount, setIdentifyErrorCount] = useState(0);
 
   const { state, startGeneration, retry, canGenerate } = useImageGeneration({
     template: selectedTemplate,
@@ -39,6 +40,7 @@ export function CreatePage({ onNavigate, selectedTemplate }: CreatePageProps) {
 
   const handleGenerate = async () => {
     try {
+      // 开始生成
       await startGeneration(uploadedPhotos, projectName, shareToGallery);
 
       // 生成完成后显示成功提示
@@ -50,13 +52,14 @@ export function CreatePage({ onNavigate, selectedTemplate }: CreatePageProps) {
           type: 'success',
         });
       }
-    } catch {
-      setToast({ message: '生成失败,请查看详情并重试', type: 'error' });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '生成失败,请查看详情并重试';
+      setToast({ message, type: 'error' });
     }
   };
 
   const isGenerating = state.status === 'processing';
-  const canGenerateNow = canGenerate(uploadedPhotos, projectName);
+  const canGenerateNow = canGenerate(uploadedPhotos, projectName) && identifyErrorCount === 0;
 
   return (
     <div className="py-12 min-h-screen bg-gradient-to-b from-champagne to-ivory">
@@ -120,6 +123,7 @@ export function CreatePage({ onNavigate, selectedTemplate }: CreatePageProps) {
                 <PhotoUploader
                   photos={uploadedPhotos}
                   onChange={setUploadedPhotos}
+                  onIdentifyErrorCountChange={setIdentifyErrorCount}
                   maxPhotos={10}
                   minPhotos={1}
                 />
@@ -127,19 +131,19 @@ export function CreatePage({ onNavigate, selectedTemplate }: CreatePageProps) {
 
               {/* 分享到画廊选项 */}
               <div className="mb-8">
-                <div className="flex items-start gap-3 p-4 bg-champagne/50 rounded-lg border border-stone/10">
+                <div className="flex gap-3 items-start p-4 rounded-lg border bg-champagne/50 border-stone/10">
                   <input
                     type="checkbox"
                     id="shareToGallery"
                     checked={shareToGallery}
                     onChange={(e) => setShareToGallery(e.target.checked)}
-                    className="mt-1 w-4 h-4 text-dusty-rose bg-ivory border-stone/30 rounded focus:ring-dusty-rose/30 focus:ring-2"
+                    className="mt-1 w-4 h-4 rounded text-dusty-rose bg-ivory border-stone/30 focus:ring-dusty-rose/30 focus:ring-2"
                   />
                   <div className="flex-1">
-                    <label htmlFor="shareToGallery" className="text-sm font-medium text-navy cursor-pointer">
+                    <label htmlFor="shareToGallery" className="text-sm font-medium cursor-pointer text-navy">
                       分享到画廊
                     </label>
-                    <p className="text-xs text-stone mt-1">
+                    <p className="mt-1 text-xs text-stone">
                       勾选后，生成的作品将在公开画廊中展示，让更多人欣赏您的创作。您可以随时在仪表盘中修改分享状态。
                     </p>
                   </div>
@@ -204,6 +208,19 @@ export function CreatePage({ onNavigate, selectedTemplate }: CreatePageProps) {
                     </>
                   )}
                 </button>
+
+                {/* 按钮禁用原因提示 */}
+                {identifyErrorCount > 0 && (
+                  <div className="flex gap-2 items-start p-3 bg-red-50 rounded-lg border border-red-200">
+                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-red-800">
+                      <p className="font-medium">无法生成</p>
+                      <p>
+                        检测到 {identifyErrorCount} 张照片未包含人物，请删除这些照片并重新上传包含人物的照片后再试。
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* 失败重试 */}

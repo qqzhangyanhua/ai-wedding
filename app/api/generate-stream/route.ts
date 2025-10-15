@@ -1,15 +1,46 @@
 import { createClient } from '@supabase/supabase-js';
 import { GenerateImageSchema, validateData } from '@/lib/validations';
+import type { ModelConfig } from '@/types/model-config';
 
 // 使用 Edge Runtime 以支持流式响应
 export const runtime = 'edge';
 
-// 从环境变量读取配置
-const IMAGE_API_BASE_URL = process.env.IMAGE_API_BASE_URL || 'https://api.aioec.tech';
-const IMAGE_API_KEY = process.env.IMAGE_API_KEY;
-const IMAGE_CHAT_MODEL = process.env.IMAGE_CHAT_MODEL || 'gemini-2.5-flash-image';
+// 从环境变量读取配置（作为回退）
+const ENV_IMAGE_API_BASE_URL = process.env.IMAGE_API_BASE_URL || 'https://api.aioec.tech';
+const ENV_IMAGE_API_KEY = process.env.IMAGE_API_KEY;
+const ENV_IMAGE_CHAT_MODEL = process.env.IMAGE_CHAT_MODEL || 'gemini-2.5-flash-image';
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+/**
+ * 从数据库获取激活的模型配置
+ * 如果没有激活配置，返回 null（使用环境变量回退）
+ */
+async function getActiveModelConfig(supabase: unknown): Promise<ModelConfig | null> {
+  try {
+    const client = supabase as ReturnType<typeof createClient>;
+    const { data, error } = await client
+      .from('model_configs')
+      .select('*')
+      .eq('type', 'generate-image')
+      .eq('status', 'active')
+      .single();
+
+    if (error) {
+      // 如果没有找到配置（PGRST116），返回 null
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      console.error('查询激活配置失败:', error);
+      return null;
+    }
+
+    return data as ModelConfig;
+  } catch (err) {
+    console.error('获取激活配置异常:', err);
+    return null;
+  }
+}
 
 // 简单用户级限流
 const RL_WINDOW_MS = 60 * 1000; // 1分钟
@@ -50,22 +81,6 @@ export async function POST(req: Request) {
   console.log(`[${requestId}] ========== 开始处理流式图片生成请求 ==========`);
   
   try {
-    // 日志：环境变量检查
-    console.log(`[${requestId}] 环境变量检查:`, {
-      IMAGE_API_BASE_URL,
-      IMAGE_API_KEY: IMAGE_API_KEY ? `${IMAGE_API_KEY.substring(0, 10)}...` : 'missing',
-      IMAGE_CHAT_MODEL,
-      SUPABASE_URL,
-    });
-
-    if (!IMAGE_API_KEY) {
-      console.error(`[${requestId}] ❌ IMAGE_API_KEY 未配置`);
-      return new Response(
-        JSON.stringify({ error: 'Server misconfigured: IMAGE_API_KEY is missing' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-
     // 1) 认证校验
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       console.error(`[${requestId}] ❌ Supabase 环境变量未配置`);
@@ -101,7 +116,42 @@ export async function POST(req: Request) {
     
     console.log(`[${requestId}] ✅ 用户认证成功: ${userData.user.id}`);
 
-    // 2) 速率限制
+    // 2) 获取模型配置（优先从数据库，回退到环境变量）
+    const dbConfig = await getActiveModelConfig(supabase);
+    
+    let IMAGE_API_BASE_URL: string;
+    let IMAGE_API_KEY: string;
+    let IMAGE_CHAT_MODEL: string;
+    
+    if (dbConfig) {
+      console.log(`[${requestId}] ✅ 使用数据库配置: ${dbConfig.name} (ID: ${dbConfig.id})`);
+      IMAGE_API_BASE_URL = dbConfig.api_base_url;
+      IMAGE_API_KEY = dbConfig.api_key;
+      IMAGE_CHAT_MODEL = dbConfig.model_name;
+    } else {
+      console.log(`[${requestId}] ⚠️ 未找到激活的数据库配置，使用环境变量回退`);
+      IMAGE_API_BASE_URL = ENV_IMAGE_API_BASE_URL;
+      IMAGE_API_KEY = ENV_IMAGE_API_KEY || '';
+      IMAGE_CHAT_MODEL = ENV_IMAGE_CHAT_MODEL;
+    }
+
+    // 日志：配置检查
+    console.log(`[${requestId}] 配置检查:`, {
+      source: dbConfig ? 'database' : 'environment',
+      IMAGE_API_BASE_URL,
+      IMAGE_API_KEY: IMAGE_API_KEY ? `${IMAGE_API_KEY.substring(0, 10)}...` : 'missing',
+      IMAGE_CHAT_MODEL,
+    });
+
+    if (!IMAGE_API_KEY) {
+      console.error(`[${requestId}] ❌ IMAGE_API_KEY 未配置`);
+      return new Response(
+        JSON.stringify({ error: 'Server misconfigured: IMAGE_API_KEY is missing' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // 3) 速率限制
     const userId = userData.user.id;
     const now = Date.now();
     const rec = rateBucket.get(userId);

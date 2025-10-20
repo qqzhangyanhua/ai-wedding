@@ -118,13 +118,13 @@ export async function uploadImage(options: UploadImageOptions): Promise<UploadIm
     const port = config.port === 80 || config.port === 443 ? '' : `:${config.port}`;
     const publicUrl = `${protocol}://${config.endpoint}${port}/${bucketName}/${objectName}`;
 
-    // 生成预签名 URL（24小时有效期）
-    const presignedUrl = await client.presignedGetObject(bucketName, objectName, 24 * 60 * 60);
+    // 生成预签名 URL（7天有效期）
+    const presignedUrl = await client.presignedGetObject(bucketName, objectName, 7 * 24 * 60 * 60);
 
     console.log(`✅ 预签名 URL 生成成功: ${presignedUrl.substring(0, 100)}...`);
 
     return {
-      url: presignedUrl, // 默认返回预签名 URL
+      url: publicUrl, // 默认返回公共 URL（需要 bucket 设置为公共读）
       publicUrl,
       presignedUrl,
       objectName,

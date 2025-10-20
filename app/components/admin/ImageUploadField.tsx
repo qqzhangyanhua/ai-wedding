@@ -77,7 +77,7 @@ export function ImageUploadField({ currentUrl, onUrlChange }: ImageUploadFieldPr
 
       {currentUrl ? (
         <div className="relative w-full max-w-md">
-          <div className="relative aspect-video w-full overflow-hidden rounded-lg border">
+          <div className="overflow-hidden relative w-full rounded-lg border aspect-video">
             <Image
               src={currentUrl}
               alt="预览图"
@@ -90,14 +90,14 @@ export function ImageUploadField({ currentUrl, onUrlChange }: ImageUploadFieldPr
             type="button"
             variant="destructive"
             size="icon"
-            className="absolute -right-2 -top-2"
+            className="absolute -top-2 -right-2"
             onClick={handleRemoveImage}
           >
-            <X className="h-4 w-4" />
+            <X className="w-4 h-4" />
           </Button>
         </div>
       ) : (
-        <div className="flex items-center gap-4">
+        <div className="flex gap-4 items-center">
           <Input
             ref={fileInputRef}
             type="file"
@@ -115,12 +115,12 @@ export function ImageUploadField({ currentUrl, onUrlChange }: ImageUploadFieldPr
           >
             {isUploading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 w-4 h-4 animate-spin" />
                 上传中...
               </>
             ) : (
               <>
-                <Upload className="mr-2 h-4 w-4" />
+                <Upload className="mr-2 w-4 h-4" />
                 上传图片
               </>
             )}

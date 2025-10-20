@@ -5,6 +5,9 @@ import type { ModelConfig, ModelConfigType } from '@/types/model-config';
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
+// 强制动态渲染，因为需要读取请求头进行认证
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/model-configs/active?type=generate-image
  * 获取指定类型的激活配置（需要认证）

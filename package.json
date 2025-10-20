@@ -7,7 +7,16 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "fix-minio": "bash scripts/fix-minio-403.sh",
+    "fix-minio:policy": "tsx scripts/fix-minio-bucket-policy.ts",
+    "fix-minio:urls": "tsx scripts/refresh-image-urls.ts",
+    "deploy": "bash scripts/deploy.sh",
+    "pm2:start": "bash scripts/start-pm2.sh",
+    "pm2:stop": "pm2 stop ai-wedding",
+    "pm2:restart": "pm2 restart ai-wedding",
+    "pm2:logs": "pm2 logs ai-wedding",
+    "pm2:status": "pm2 status"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -47,6 +56,7 @@
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "tailwindcss-animate": "^1.0.7",
+    "tsx": "^4.20.6",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.3.0"
   }

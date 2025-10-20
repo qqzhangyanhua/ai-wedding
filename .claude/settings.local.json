@@ -32,7 +32,9 @@
       "Bash(pnpm build:*)",
       "Bash(pnpm dlx shadcn@latest add:*)",
       "Bash(node test-prompt-optimization.js)",
-      "Bash(node test-face-preservation.js)"
+      "Bash(node test-face-preservation.js)",
+      "Bash(curl:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

@@ -241,3 +241,5 @@ mc admin policy list myminio > minio-policies-backup.json
 **影响范围**：全站图片（27 个已存在的图片 + 所有未来上传的图片）  
 **修复状态**：✅ 完全成功
 
+
+

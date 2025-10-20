@@ -250,7 +250,7 @@ export default function AdminTemplatesPage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:grid-cols-3">
             {templates.map((template) => (
               <div
                 key={template.id}
@@ -265,142 +265,181 @@ export default function AdminTemplatesPage() {
                   }
                 }}
                 className={cn(
-                  'group relative flex flex-col gap-5 items-start p-5 h-full rounded-xl border bg-card shadow-sm transition-colors transition-shadow transition-transform duration-300 sm:flex-row hover:shadow-md hover:bg-muted/50 md:hover:-translate-y-0.5 hover:border-primary/30 focus:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 cursor-pointer',
-                  !template.is_active && 'opacity-80'
+                  'group relative flex flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-all duration-300 hover:shadow-lg hover:border-primary/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer',
+                  !template.is_active && 'opacity-75'
                 )}
               >
+                {/* 状态标签 */}
                 {!template.is_active && (
-                  <span className="pointer-events-none absolute right-3 top-3 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium bg-muted text-muted-foreground">
+                  <span className="pointer-events-none absolute right-3 top-3 z-10 inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium bg-background/80 backdrop-blur-sm text-muted-foreground shadow-sm">
                     未启用
                   </span>
                 )}
-                <div className="overflow-hidden relative w-full h-40 rounded sm:w-36 sm:h-24 sm:flex-shrink-0">
+
+                {/* 图片区域 - 固定宽高比 */}
+                <div className="relative w-full aspect-[16/9] bg-muted overflow-hidden">
                   <Image
                     src={template.preview_image_url}
                     alt={template.name}
                     fill
-                    className="object-cover"
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
                     unoptimized
                   />
+                  {/* 图片遮罩层 */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
 
-                <div className="flex-1">
-                  <div className="flex gap-4 justify-between items-start">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold">{template.name}</h3>
+                {/* 内容区域 */}
+                <div className="flex flex-col flex-1 p-5">
+                  {/* 标题和状态 */}
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-base truncate mb-2">{template.name}</h3>
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span
-                          className={
-                            "inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium " +
-                            (template.is_active
+                          className={cn(
+                            "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium",
+                            template.is_active
                               ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300"
-                              : "bg-muted text-muted-foreground border")
-                          }
+                              : "bg-muted text-muted-foreground"
+                          )}
                         >
                           {template.is_active ? "启用中" : "未启用"}
                         </span>
-                      </div>
-                      <p
-                        id={`desc-${template.id}`}
-                        className="text-sm leading-relaxed text-muted-foreground"
-                      >
-                        {expanded[template.id]
-                          ? template.description
-                          : (template.description?.length ?? 0) > 120
-                          ? `${template.description?.slice(0, 120)}…`
-                          : template.description}
-                        {(template.description?.length ?? 0) > 120 && (
-                          <button
-                            type="button"
-                            onClick={() => toggleExpand(template.id)}
-                            className="ml-2 text-xs text-primary underline underline-offset-4 hover:opacity-90"
-                            aria-expanded={!!expanded[template.id]}
-                            aria-controls={`desc-${template.id}`}
-                          >
-                            {expanded[template.id] ? "收起" : "展开"}
-                          </button>
-                        )}
-                      </p>
-                      <div className="flex flex-wrap gap-3 items-center mt-2 text-xs text-muted-foreground">
-                        <span>{CATEGORY_LABELS[template.category] ?? template.category}</span>
-                        <span>{template.price_credits} 积分</span>
-                        <span>排序：{template.sort_order}</span>
-                        <span>提示词：{getPromptCount(template)}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {CATEGORY_LABELS[template.category] ?? template.category}
+                        </span>
                       </div>
                     </div>
+                  </div>
 
-                    <div className="flex gap-3 items-center mt-3 sm:mt-0">
+                  {/* 描述 */}
+                  <p
+                    id={`desc-${template.id}`}
+                    className="text-sm leading-relaxed text-muted-foreground mb-3 flex-1"
+                  >
+                    {expanded[template.id]
+                      ? template.description
+                      : (template.description?.length ?? 0) > 100
+                      ? `${template.description?.slice(0, 100)}…`
+                      : template.description}
+                    {(template.description?.length ?? 0) > 100 && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleExpand(template.id);
+                        }}
+                        className="ml-1 text-xs text-primary hover:underline underline-offset-4"
+                        aria-expanded={!!expanded[template.id]}
+                        aria-controls={`desc-${template.id}`}
+                      >
+                        {expanded[template.id] ? "收起" : "展开"}
+                      </button>
+                    )}
+                  </p>
+
+                  {/* 元数据标签 */}
+                  <div className="flex flex-wrap gap-2 items-center text-xs text-muted-foreground mb-4">
+                    <span className="inline-flex items-center gap-1">
+                      <span className="font-medium">{template.price_credits}</span> 积分
+                    </span>
+                    <span>·</span>
+                    <span>排序 {template.sort_order}</span>
+                    <span>·</span>
+                    <span>{getPromptCount(template)} 个提示词</span>
+                  </div>
+
+                  {/* 操作按钮组 */}
+                  <div className="flex items-center gap-1 pt-3 border-t">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        duplicateTemplate(template);
+                      }}
+                      title="复制模板"
+                      aria-label="复制模板"
+                      className="flex-1"
+                    >
+                      <Copy className="w-4 h-4 mr-1.5" />
+                      <span className="text-xs">复制</span>
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleActive(template);
+                      }}
+                      title={template.is_active ? '停用' : '启用'}
+                      aria-label={template.is_active ? '停用模板' : '启用模板'}
+                      aria-pressed={template.is_active}
+                      className="flex-1"
+                    >
+                      {template.is_active ? (
+                        <>
+                          <EyeOff className="w-4 h-4 mr-1.5" />
+                          <span className="text-xs">停用</span>
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="w-4 h-4 mr-1.5" />
+                          <span className="text-xs">启用</span>
+                        </>
+                      )}
+                    </Button>
+
+                    <Link href={`/admin/templates/${template.id}`} onClick={(e) => e.stopPropagation()}>
                       <Button
                         variant="ghost"
-                        size="icon"
-                        onClick={(e) => { e.stopPropagation(); duplicateTemplate(template); }}
-                        title="复制"
-                        aria-label="复制模板"
+                        size="sm"
+                        title="编辑模板"
+                        aria-label={`编辑模板：${template.name}`}
+                        className="flex-1"
                       >
-                        <Copy className="w-4 h-4" />
+                        <Edit className="w-4 h-4 mr-1.5" />
+                        <span className="text-xs">编辑</span>
                       </Button>
+                    </Link>
 
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => { e.stopPropagation(); toggleActive(template); }}
-                        title={template.is_active ? '停用' : '启用'}
-                        aria-label={template.is_active ? '停用模板' : '启用模板'}
-                        aria-pressed={template.is_active}
-                      >
-                        {template.is_active ? (
-                          <Eye className="w-4 h-4" />
-                        ) : (
-                          <EyeOff className="w-4 h-4" />
-                        )}
-                      </Button>
-
-                      <Link href={`/admin/templates/${template.id}`}>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
                         <Button
                           variant="ghost"
-                          size="icon"
-                          title="编辑"
-                          aria-label={`编辑模板：${template.name}`}
+                          size="sm"
+                          title="删除模板"
+                          aria-label="删除模板"
                           onClick={(e) => e.stopPropagation()}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-1"
                         >
-                          <Edit className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4 mr-1.5" />
+                          <span className="text-xs">删除</span>
                         </Button>
-                      </Link>
-
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            title="删除"
-                            aria-label="删除模板"
-                            onClick={(e) => e.stopPropagation()}
+                      </AlertDialogTrigger>
+                      <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>删除模板</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            此操作不可恢复，确定删除"{template.name}"吗？
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel onClick={(e) => e.stopPropagation()}>取消</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(template.id, true);
+                            }}
                           >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>删除模板</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              此操作不可恢复，确定删除“{template.name}”吗？
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel onClick={(e) => e.stopPropagation()}>取消</AlertDialogCancel>
-                            <AlertDialogAction
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDelete(template.id, true);
-                              }}
-                            >
-                              确认删除
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
+                            确认删除
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               </div>

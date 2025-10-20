@@ -82,3 +82,5 @@ echo "停止应用："
 echo "  pm2 stop ai-wedding"
 echo ""
 
+
+

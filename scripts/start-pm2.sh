@@ -29,3 +29,5 @@ echo ""
 echo "查看日志: pm2 logs ai-wedding"
 echo "查看状态: pm2 status"
 
+
+

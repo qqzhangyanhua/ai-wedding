@@ -247,3 +247,5 @@ pm2 reload ai-wedding
 3. 系统资源使用情况：`top` 或 `htop`
 4. 磁盘空间：`df -h`
 
+
+

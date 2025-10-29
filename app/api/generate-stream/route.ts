@@ -13,6 +13,34 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 /**
+ * 将 URL 转换为 base64 格式的 Data URL
+ * 如果输入已经是 data URL，则直接返回
+ */
+async function convertUrlToBase64(url: string): Promise<string> {
+  // 如果已经是 data URL，直接返回
+  if (url.startsWith('data:')) {
+    return url;
+  }
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+    }
+
+    const blob = await response.blob();
+    const arrayBuffer = await blob.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString('base64');
+    const mimeType = blob.type || 'image/jpeg';
+
+    return `data:${mimeType};base64,${base64}`;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to convert URL to base64: ${message}`);
+  }
+}
+
+/**
  * 从数据库获取激活的模型配置
  * 如果没有激活配置，返回 null（使用环境变量回退）
  */
@@ -206,6 +234,7 @@ export async function POST(req: Request) {
     const chatContent: ChatContentItem[] = [{ type: 'text', text: composedPrompt }];
 
     // 添加图片输入（最多3张）：支持 dataURL 与 http(s) URL
+    // 为了兼容上游 API 只支持 HTTPS URL 的限制，将所有 URL 转换为 base64
     if (Array.isArray(image_inputs)) {
       const picked = image_inputs
         .filter((s) =>
@@ -214,15 +243,29 @@ export async function POST(req: Request) {
         )
         .slice(0, 3);
       console.log(`[${requestId}] 图片输入: ${picked.length} 张`);
+      
       for (const url of picked) {
-        let preview = '';
-        if (url.startsWith('data:image/')) {
-          preview = url.substring(0, 50) + '...' + url.substring(url.length - 20);
-        } else {
-          preview = url.substring(0, 100) + (url.length > 100 ? '...' : '');
+        try {
+          // 判断原始类型
+          const isDataUrl = url.startsWith('data:');
+          const urlType = isDataUrl ? 'Data URL' : url.startsWith('https://') ? 'HTTPS' : 'HTTP';
+          
+          console.log(`[${requestId}]   - 图片类型: ${urlType}, ${isDataUrl ? '长度: ' + url.length + ' 字符' : 'URL: ' + url.substring(0, 80) + (url.length > 80 ? '...' : '')}`);
+          
+          // 将 URL 转换为 base64（如果已经是 data URL 则直接返回）
+          const base64Url = await convertUrlToBase64(url);
+          
+          // 转换后不打印 base64 内容，只打印统计信息
+          if (!isDataUrl) {
+            console.log(`[${requestId}]   - ✅ 已转换为 base64, 长度: ${base64Url.length} 字符`);
+          }
+          
+          chatContent.push({ type: 'image_url', image_url: { url: base64Url } });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          console.error(`[${requestId}] ⚠️ 跳过图片（转换失败）: ${message}`);
+          // 继续处理下一张图片，不中断整个流程
         }
-        console.log(`[${requestId}]   - 图片: ${preview}`);
-        chatContent.push({ type: 'image_url', image_url: { url } });
       }
     } else {
       console.log(`[${requestId}] 无图片输入`);
@@ -266,14 +309,26 @@ export async function POST(req: Request) {
       if (item.type === 'text') {
         console.log(`[${requestId}]   [${idx}] type: "text", length: ${item.text.length} 字符`);
       } else if (item.type === 'image_url') {
-        const urlPreview = item.image_url.url.substring(0, 50) + '...[base64 data]';
-        console.log(`[${requestId}]   [${idx}] type: "image_url", url: ${urlPreview}`);
+        const urlLength = item.image_url.url.length;
+        const isBase64 = item.image_url.url.startsWith('data:');
+        console.log(`[${requestId}]   [${idx}] type: "image_url", ${isBase64 ? 'base64 长度' : 'url 长度'}: ${urlLength} 字符`);
       }
     });
 
-  
-
-    console.log(`[${JSON.stringify(requestData)}] ========== 开始发送请求入参 ==========`);
+    // 打印请求摘要（不包含 base64 数据）
+    const textItem = requestData.messages[0].content.find(
+      (item): item is { type: 'text'; text: string } => item.type === 'text'
+    );
+    const requestSummary = {
+      model: requestData.model,
+      temperature: requestData.temperature,
+      top_p: requestData.top_p,
+      stream: requestData.stream,
+      message_content_count: requestData.messages[0].content.length,
+      text_content_length: textItem?.text.length || 0,
+      image_count: requestData.messages[0].content.filter((item) => item.type === 'image_url').length,
+    };
+    console.log(`[${requestId}] ========== 请求摘要 ==========`, JSON.stringify(requestSummary, null, 2));
     // ==================== 日志结束 ====================
 
     const fetchStartTime = Date.now();

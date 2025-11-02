@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { AuthModal } from './AuthModal';
 import { CardSkeleton } from './ui/card-skeleton';
 import { supabase } from '@/lib/supabase';
+import { useImageIdentification } from '@/hooks/useImageIdentification';
 
 interface ImageGenerationSettings {
   facePreservation: 'high' | 'medium' | 'low';
@@ -18,13 +19,16 @@ interface ImageGenerationSettings {
 export function GenerateSinglePage() {
   const { user } = useAuth();
   const { templates, loading: templatesLoading } = useTemplates();
+  const { identifyImages, isIdentifying } = useImageIdentification();
   const [showAuthModal, setShowAuthModal] = useState(false);
   
   // 图片上传相关
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [originalImageFile, setOriginalImageFile] = useState<File | null>(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null); // MinIO URL
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isValidatingImage, setIsValidatingImage] = useState(false);
   
   // 模板和提示词
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
@@ -76,7 +80,7 @@ export function GenerateSinglePage() {
     }
   };
 
-  const processFile = (file: File) => {
+  const processFile = async (file: File) => {
     // 验证文件类型
     if (!file.type.startsWith('image/')) {
       setError('请选择图片文件！');
@@ -90,13 +94,85 @@ export function GenerateSinglePage() {
     }
 
     setError(null);
-    setOriginalImageFile(file);
+    setSuccess(null);
+    setIsValidatingImage(true);
 
     const reader = new FileReader();
-    reader.onload = (e) => {
-      setOriginalImage(e.target?.result as string);
+    reader.onload = async (e) => {
+      const dataUrl = e.target?.result as string;
+      
+      try {
+        // 检查用户是否登录
+        if (!user) {
+          // 未登录用户，跳过识别
+          setOriginalImage(dataUrl);
+          setOriginalImageFile(file);
+          setIsValidatingImage(false);
+          return;
+        }
+
+        // 调用识别接口验证图片是否包含人物
+        const identifyResult = await identifyImages([dataUrl]);
+        
+        if (!identifyResult.allValid) {
+          // 图片不包含人物
+          const invalidResult = identifyResult.results.find(r => !r.hasPerson);
+          setError(
+            `检测到图片未包含人物：${invalidResult?.description || '请上传包含人物的照片'}。\n请重新选择包含人物的照片。`
+          );
+          setIsValidatingImage(false);
+          return;
+        }
+
+        // 验证通过，设置图片
+        setOriginalImage(dataUrl);
+        setOriginalImageFile(file);
+        setSuccess('图片验证通过！');
+        
+        // 上传到 MinIO
+        await uploadImageToMinio(dataUrl);
+        
+      } catch (err) {
+        console.error('图片验证失败:', err);
+        setError(err instanceof Error ? err.message : '图片验证失败，请重试');
+      } finally {
+        setIsValidatingImage(false);
+      }
     };
     reader.readAsDataURL(file);
+  };
+
+  // 上传图片到 MinIO
+  const uploadImageToMinio = async (dataUrl: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        console.warn('未登录，跳过上传到 MinIO');
+        return;
+      }
+
+      const response = await fetch('/api/upload-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          image: dataUrl,
+          folder: 'generate-single/uploads',
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setUploadedImageUrl(result.presignedUrl || result.url);
+        console.log('图片已上传到 MinIO:', result.url);
+      } else {
+        console.warn('上传到 MinIO 失败，将使用 dataURL');
+      }
+    } catch (err) {
+      console.warn('上传到 MinIO 异常:', err);
+    }
   };
 
   // 处理模板选择
@@ -274,6 +350,9 @@ Please focus your modifications ONLY on the user's specific requirements while s
           const imageDataUrl = `data:image/${imageType};base64,${base64String}`;
           setGeneratedImage(imageDataUrl);
           setSuccess('图片生成完成！');
+
+          // 上传生成的图片到 MinIO
+          await uploadGeneratedImageToMinio(imageDataUrl);
         } else {
           throw new Error('未能从响应中提取图片数据');
         }
@@ -285,6 +364,39 @@ Please focus your modifications ONLY on the user's specific requirements while s
       setError(err instanceof Error ? err.message : '生成失败，请重试');
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  // 上传生成的图片到 MinIO
+  const uploadGeneratedImageToMinio = async (imageDataUrl: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        console.warn('未登录，跳过上传生成图片到 MinIO');
+        return;
+      }
+
+      const response = await fetch('/api/upload-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          image: imageDataUrl,
+          folder: 'generate-single/results',
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('生成的图片已上传到 MinIO:', result.url);
+        setSuccess('图片生成完成并已保存！');
+      } else {
+        console.warn('上传生成图片到 MinIO 失败');
+      }
+    } catch (err) {
+      console.warn('上传生成图片到 MinIO 异常:', err);
     }
   };
 
@@ -326,36 +438,28 @@ Please focus your modifications ONLY on the user's specific requirements while s
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-champagne via-ivory to-blush py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="py-12 min-h-screen bg-gradient-to-b from-champagne via-ivory to-blush">
+      <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
         {/* 标题 */}
-        <div className="text-center mb-12">
+        <div className="mb-12 text-center">
           <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-champagne border border-rose-gold/20 text-navy rounded-full text-sm font-medium tracking-wide shadow-sm mb-6">
             <Wand2 className="w-4 h-4 text-rose-gold" />
             AI 图片生成
           </div>
-          <h1 className="text-4xl md:text-5xl font-display font-medium text-navy mb-4">
+          <h1 className="mb-4 text-4xl font-medium md:text-5xl font-display text-navy">
             生成全新的
             <span className="text-dusty-rose"> 梦幻婚纱照</span>
           </h1>
-          <p className="text-xl text-stone mb-6">上传照片，选择风格，AI智能生成专属婚纱照</p>
+          <p className="mb-6 text-xl text-stone">上传照片，选择风格，AI智能生成专属婚纱照</p>
 
           {/* 温馨提示 */}
-          <div className="max-w-2xl mx-auto">
-            <div className="flex items-start gap-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-blue-800 text-left">
-                <p className="font-medium mb-1">温馨提示</p>
-                <p>为保护您的隐私，本页面不会储存任何上传或生成的图片数据。如果对生成结果满意，请及时下载保存。</p>
-              </div>
-            </div>
-          </div>
+        
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 gap-8 mb-8 lg:grid-cols-2">
           {/* 左侧：上传区域 */}
-          <div className="bg-ivory rounded-xl shadow-sm border border-stone/10 p-6">
-            <h2 className="text-xl font-display font-medium text-navy mb-4 flex items-center gap-2">
+          <div className="p-6 rounded-xl border shadow-sm bg-ivory border-stone/10">
+            <h2 className="flex gap-2 items-center mb-4 text-xl font-medium font-display text-navy">
               <Upload className="w-5 h-5 text-rose-gold" />
               上传原图
             </h2>
@@ -389,52 +493,74 @@ Please focus your modifications ONLY on the user's specific requirements while s
                     />
                     <button
                       onClick={() => viewImage(originalImage, '原图')}
-                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center"
+                      className="flex absolute inset-0 justify-center items-center opacity-0 transition-opacity duration-300 bg-black/50 group-hover:opacity-100"
                     >
-                      <div className="bg-ivory/90 rounded-full p-3">
+                      <div className="p-3 rounded-full bg-ivory/90">
                         <Maximize2 className="w-6 h-6 text-navy" />
                       </div>
                     </button>
                   </div>
                   {originalImageFile && (
-                    <div className="text-sm text-stone space-y-1">
+                    <div className="space-y-1 text-sm text-stone">
                       <p><span className="font-medium">文件名:</span> {originalImageFile.name}</p>
                       <p><span className="font-medium">大小:</span> {(originalImageFile.size / 1024 / 1024).toFixed(2)} MB</p>
                     </div>
                   )}
                 </div>
+              ) : isValidatingImage ? (
+                <div className="space-y-4">
+                  <Loader2 className="mx-auto w-12 h-12 animate-spin text-rose-gold" />
+                  <div>
+                    <p className="mb-2 text-lg font-medium text-navy">正在验证图片...</p>
+                    <p className="text-sm text-stone">检测图片是否包含人物</p>
+                  </div>
+                </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="w-16 h-16 bg-champagne rounded-full flex items-center justify-center mx-auto">
+                  <div className="flex justify-center items-center mx-auto w-16 h-16 rounded-full bg-champagne">
                     <ImageIcon className="w-8 h-8 text-rose-gold" />
                   </div>
                   <div>
-                    <p className="text-lg font-medium text-navy mb-2">点击或拖拽上传图片</p>
+                    <p className="mb-2 text-lg font-medium text-navy">点击或拖拽上传图片</p>
                     <p className="text-sm text-stone">支持 JPG, PNG, WebP 格式，最大 10MB</p>
+                    {user && (
+                      <p className="mt-2 text-xs text-stone/70">上传后将自动验证图片是否包含人物</p>
+                    )}
                   </div>
                 </div>
               )}
             </div>
+            
+            {/* 验证状态提示 */}
+            {user && originalImage && !isValidatingImage && (
+              <div className="flex gap-2 items-start p-3 mt-4 bg-green-50 rounded-md border border-green-200">
+                <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-green-800">
+                  <p className="font-medium">图片验证通过</p>
+                  <p>已检测到人物，可以继续生成</p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 右侧：结果区域 */}
-          <div className="bg-ivory rounded-xl shadow-sm border border-stone/10 p-6">
-            <h2 className="text-xl font-display font-medium text-navy mb-4 flex items-center gap-2">
+          <div className="p-6 rounded-xl border shadow-sm bg-ivory border-stone/10">
+            <h2 className="flex gap-2 items-center mb-4 text-xl font-medium font-display text-navy">
               <Sparkles className="w-5 h-5 text-rose-gold" />
               生成结果
             </h2>
             
             <div className="border-2 border-dashed border-stone/30 rounded-xl p-8 min-h-[400px] flex items-center justify-center">
               {isGenerating ? (
-                <div className="text-center space-y-4">
-                  <Loader2 className="w-12 h-12 text-rose-gold animate-spin mx-auto" />
+                <div className="space-y-4 text-center">
+                  <Loader2 className="mx-auto w-12 h-12 animate-spin text-rose-gold" />
                   <p className="text-stone">AI正在生成中，请稍候...</p>
                   {streamingContent && (
                     <p className="text-xs text-stone/70">已接收 {streamingContent.length} 字符</p>
                   )}
                 </div>
               ) : generatedImage ? (
-                <div className="w-full space-y-4">
+                <div className="space-y-4 w-full">
                   <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden group">
                     <Image
                       src={generatedImage}
@@ -444,19 +570,19 @@ Please focus your modifications ONLY on the user's specific requirements while s
                     />
                     <button
                       onClick={() => viewImage(generatedImage, '生成结果')}
-                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center"
+                      className="flex absolute inset-0 justify-center items-center opacity-0 transition-opacity duration-300 bg-black/50 group-hover:opacity-100"
                     >
-                      <div className="bg-ivory/90 rounded-full p-3">
+                      <div className="p-3 rounded-full bg-ivory/90">
                         <Maximize2 className="w-6 h-6 text-navy" />
                       </div>
                     </button>
                   </div>
 
                   {/* 重要提示 */}
-                  <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                  <div className="flex gap-2 items-start p-3 bg-amber-50 rounded-md border border-amber-200">
                     <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                     <div className="text-sm text-amber-800">
-                      <p className="font-medium mb-1">重要提示</p>
+                      <p className="mb-1 font-medium">重要提示</p>
                       <p>图片满意请及时下载保存，本页面不会自动储存您的生成结果。</p>
                     </div>
                   </div>
@@ -464,14 +590,14 @@ Please focus your modifications ONLY on the user's specific requirements while s
                   <div className="flex gap-3">
                     <button
                       onClick={downloadImage}
-                      className="flex-1 px-4 py-3 bg-navy text-ivory rounded-md hover:bg-navy/90 transition-colors font-medium flex items-center justify-center gap-2"
+                      className="flex flex-1 gap-2 justify-center items-center px-4 py-3 font-medium rounded-md transition-colors bg-navy text-ivory hover:bg-navy/90"
                     >
                       <Download className="w-4 h-4" />
                       下载图片
                     </button>
                     <button
                       onClick={copyBase64}
-                      className="flex-1 px-4 py-3 bg-rose-gold/20 text-navy rounded-md hover:bg-rose-gold/30 transition-colors font-medium flex items-center justify-center gap-2"
+                      className="flex flex-1 gap-2 justify-center items-center px-4 py-3 font-medium rounded-md transition-colors bg-rose-gold/20 text-navy hover:bg-rose-gold/30"
                     >
                       <Copy className="w-4 h-4" />
                       复制Base64
@@ -480,7 +606,7 @@ Please focus your modifications ONLY on the user's specific requirements while s
                 </div>
               ) : (
                 <div className="text-center text-stone">
-                  <div className="w-16 h-16 bg-champagne rounded-full flex items-center justify-center mx-auto mb-4">
+                  <div className="flex justify-center items-center mx-auto mb-4 w-16 h-16 rounded-full bg-champagne">
                     <Sparkles className="w-8 h-8 text-rose-gold" />
                   </div>
                   <p>生成的图片将在这里显示</p>
@@ -491,17 +617,17 @@ Please focus your modifications ONLY on the user's specific requirements while s
         </div>
 
         {/* 模板选择 */}
-        <div className="bg-ivory rounded-xl shadow-sm border border-stone/10 p-6 mb-8">
-          <h2 className="text-xl font-display font-medium text-navy mb-4">选择风格模板（可选）</h2>
+        <div className="p-6 mb-8 rounded-xl border shadow-sm bg-ivory border-stone/10">
+          <h2 className="mb-4 text-xl font-medium font-display text-navy">选择风格模板（可选）</h2>
           
           {templatesLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
               {Array.from({ length: 6 }).map((_, i) => (
                 <CardSkeleton key={i} aspectClass="aspect-[3/4]" lines={1} />
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
               {templates.slice(0, 12).map((template) => (
                 <div
                   key={template.id}
@@ -520,15 +646,15 @@ Please focus your modifications ONLY on the user's specific requirements while s
                       className="object-cover"
                     />
                     {selectedTemplate?.id === template.id && (
-                      <div className="absolute inset-0 bg-rose-gold/20 flex items-center justify-center">
-                        <div className="w-10 h-10 bg-rose-gold rounded-full flex items-center justify-center">
+                      <div className="flex absolute inset-0 justify-center items-center bg-rose-gold/20">
+                        <div className="flex justify-center items-center w-10 h-10 rounded-full bg-rose-gold">
                           <CheckCircle className="w-6 h-6 text-ivory" />
                         </div>
                       </div>
                     )}
                   </div>
                   <div className="p-2 bg-ivory">
-                    <p className="text-xs font-medium text-navy truncate">{template.name}</p>
+                    <p className="text-xs font-medium truncate text-navy">{template.name}</p>
                   </div>
                 </div>
               ))}
@@ -537,8 +663,8 @@ Please focus your modifications ONLY on the user's specific requirements while s
 
           {/* 提示词列表选择 */}
           {selectedTemplate && selectedTemplate.prompt_list && selectedTemplate.prompt_list.length > 0 && (
-            <div className="mt-6 pt-6 border-t border-stone/20">
-              <h3 className="text-lg font-display font-medium text-navy mb-4 flex items-center gap-2">
+            <div className="pt-6 mt-6 border-t border-stone/20">
+              <h3 className="flex gap-2 items-center mb-4 text-lg font-medium font-display text-navy">
                 <Sparkles className="w-5 h-5 text-rose-gold" />
                 选择提示词风格
                 <span className="text-sm font-normal text-stone">（{selectedTemplate.prompt_list.length} 个可选）</span>
@@ -554,7 +680,7 @@ Please focus your modifications ONLY on the user's specific requirements while s
                         : 'border-stone/20 hover:border-rose-gold/50 hover:bg-champagne/30'
                     }`}
                   >
-                    <div className="flex items-start gap-3">
+                    <div className="flex gap-3 items-start">
                       <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center border-2 transition-colors ${
                         selectedPromptIndex === index
                           ? 'border-rose-gold bg-rose-gold'
@@ -565,7 +691,7 @@ Please focus your modifications ONLY on the user's specific requirements while s
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex gap-2 items-center mb-2">
                           <span className={`text-sm font-medium ${
                             selectedPromptIndex === index ? 'text-rose-gold' : 'text-navy'
                           }`}>
@@ -592,12 +718,12 @@ Please focus your modifications ONLY on the user's specific requirements while s
         </div>
 
         {/* 提示词和设置 */}
-        <div className="bg-ivory rounded-xl shadow-sm border border-stone/10 p-6 mb-8">
-          <h2 className="text-xl font-display font-medium text-navy mb-4">生成设置</h2>
+        <div className="p-6 mb-8 rounded-xl border shadow-sm bg-ivory border-stone/10">
+          <h2 className="mb-4 text-xl font-medium font-display text-navy">生成设置</h2>
           
           {/* 自定义提示词 */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-navy mb-2 flex items-center gap-2">
+            <label className="block flex gap-2 items-center mb-2 text-sm font-medium text-navy">
               自定义提示词（英文，可选）
               {!selectedTemplate && (
                 <span className="text-xs font-normal text-stone">未选择模板时可用</span>
@@ -618,7 +744,7 @@ Please focus your modifications ONLY on the user's specific requirements while s
               disabled={!!selectedTemplate}
             />
             {selectedTemplate ? (
-              <div className="flex items-start gap-2 mt-2 p-3 bg-rose-gold/5 border border-rose-gold/20 rounded-md">
+              <div className="flex gap-2 items-start p-3 mt-2 rounded-md border bg-rose-gold/5 border-rose-gold/20">
                 <Sparkles className="w-4 h-4 text-rose-gold flex-shrink-0 mt-0.5" />
                 <p className="text-xs text-navy">
                   已选择模板 <span className="font-medium">{selectedTemplate.name}</span>
@@ -628,22 +754,22 @@ Please focus your modifications ONLY on the user's specific requirements while s
                 </p>
               </div>
             ) : (
-              <p className="text-xs text-stone/70 mt-2">
+              <p className="mt-2 text-xs text-stone/70">
                 💡 提示：可以选择上方的模板，或在此输入自定义提示词
               </p>
             )}
           </div>
 
           {/* 高级设置 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-navy mb-2">
+              <label className="block mb-2 text-sm font-medium text-navy">
                 五官保持强度
               </label>
               <select
                 value={settings.facePreservation}
                 onChange={(e) => setSettings({ ...settings, facePreservation: e.target.value as ImageGenerationSettings['facePreservation'] })}
-                className="w-full px-4 py-3 border border-stone/20 rounded-md focus:ring-2 focus:ring-dusty-rose/30 focus:border-dusty-rose transition-all"
+                className="px-4 py-3 w-full rounded-md border transition-all border-stone/20 focus:ring-2 focus:ring-dusty-rose/30 focus:border-dusty-rose"
               >
                 <option value="high">高（推荐）</option>
                 <option value="medium">中</option>
@@ -652,13 +778,13 @@ Please focus your modifications ONLY on the user's specific requirements while s
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-navy mb-2">
+              <label className="block mb-2 text-sm font-medium text-navy">
                 创意程度
               </label>
               <select
                 value={settings.creativityLevel}
                 onChange={(e) => setSettings({ ...settings, creativityLevel: e.target.value as ImageGenerationSettings['creativityLevel'] })}
-                className="w-full px-4 py-3 border border-stone/20 rounded-md focus:ring-2 focus:ring-dusty-rose/30 focus:border-dusty-rose transition-all"
+                className="px-4 py-3 w-full rounded-md border transition-all border-stone/20 focus:ring-2 focus:ring-dusty-rose/30 focus:border-dusty-rose"
               >
                 <option value="conservative">保守（推荐）</option>
                 <option value="balanced">平衡</option>
@@ -673,7 +799,7 @@ Please focus your modifications ONLY on the user's specific requirements while s
           <button
             onClick={generateImage}
             disabled={!originalImage || !getCurrentPrompt() || isGenerating}
-            className="px-12 py-4 bg-gradient-to-r from-rose-gold to-dusty-rose text-ivory rounded-md hover:shadow-xl transition-all duration-300 font-medium text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 mx-auto"
+            className="flex gap-3 items-center px-12 py-4 mx-auto text-lg font-medium bg-gradient-to-r rounded-md transition-all duration-300 from-rose-gold to-dusty-rose text-ivory hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isGenerating ? (
               <>
@@ -688,7 +814,7 @@ Please focus your modifications ONLY on the user's specific requirements while s
             )}
           </button>
           {!getCurrentPrompt() && originalImage && (
-            <p className="text-sm text-stone mt-3">
+            <p className="mt-3 text-sm text-stone">
               请选择模板风格或输入自定义提示词
             </p>
           )}
@@ -696,14 +822,14 @@ Please focus your modifications ONLY on the user's specific requirements while s
 
         {/* 错误和成功提示 */}
         {error && (
-          <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+          <div className="flex gap-3 items-start p-4 mt-6 bg-red-50 rounded-lg border border-red-200">
             <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
             <p className="text-red-700">{error}</p>
           </div>
         )}
 
         {success && (
-          <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3">
+          <div className="flex gap-3 items-start p-4 mt-6 bg-green-50 rounded-lg border border-green-200">
             <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
             <p className="text-green-700">{success}</p>
           </div>
@@ -713,16 +839,16 @@ Please focus your modifications ONLY on the user's specific requirements while s
       {/* 图片预览弹窗 */}
       {previewImage && (
         <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          className="flex fixed inset-0 z-50 justify-center items-center p-4 bg-black/90"
           onClick={closePreview}
         >
-          <div className="relative max-w-7xl w-full h-full flex flex-col">
+          <div className="flex relative flex-col w-full max-w-7xl h-full">
             {/* 顶部标题栏 */}
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-display font-medium text-ivory">{previewTitle}</h3>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-medium font-display text-ivory">{previewTitle}</h3>
               <button
                 onClick={closePreview}
-                className="p-2 bg-ivory/10 hover:bg-ivory/20 rounded-full transition-colors"
+                className="p-2 rounded-full transition-colors bg-ivory/10 hover:bg-ivory/20"
               >
                 <X className="w-6 h-6 text-ivory" />
               </button>
@@ -730,7 +856,7 @@ Please focus your modifications ONLY on the user's specific requirements while s
 
             {/* 图片容器 */}
             <div
-              className="flex-1 relative rounded-lg overflow-hidden"
+              className="overflow-hidden relative flex-1 rounded-lg"
               onClick={(e) => e.stopPropagation()}
             >
               <Image
@@ -743,7 +869,7 @@ Please focus your modifications ONLY on the user's specific requirements while s
             </div>
 
             {/* 底部操作栏 */}
-            <div className="flex gap-3 mt-4 justify-center">
+            <div className="flex gap-3 justify-center mt-4">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -754,7 +880,7 @@ Please focus your modifications ONLY on the user's specific requirements while s
                   link.click();
                   document.body.removeChild(link);
                 }}
-                className="px-6 py-3 bg-ivory text-navy rounded-md hover:bg-ivory/90 transition-colors font-medium flex items-center gap-2"
+                className="flex gap-2 items-center px-6 py-3 font-medium rounded-md transition-colors bg-ivory text-navy hover:bg-ivory/90"
               >
                 <Download className="w-4 h-4" />
                 下载图片
@@ -765,7 +891,7 @@ Please focus your modifications ONLY on the user's specific requirements while s
                     e.stopPropagation();
                     copyBase64();
                   }}
-                  className="px-6 py-3 bg-ivory/20 text-ivory rounded-md hover:bg-ivory/30 transition-colors font-medium flex items-center gap-2"
+                  className="flex gap-2 items-center px-6 py-3 font-medium rounded-md transition-colors bg-ivory/20 text-ivory hover:bg-ivory/30"
                 >
                   <Copy className="w-4 h-4" />
                   复制Base64

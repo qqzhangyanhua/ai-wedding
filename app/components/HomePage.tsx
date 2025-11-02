@@ -1,4 +1,4 @@
-import { Camera, Sparkles, Zap, Shield, DollarSign, Globe, ArrowRight, Star, Check, Upload, Palette, Heart } from 'lucide-react';
+import { Camera, Sparkles, Zap, Shield, DollarSign, Globe, ArrowRight, Star, Check, Upload, Palette, Heart, Clock, Flame, TrendingUp } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -99,10 +99,13 @@ export function HomePage({ onNavigate }: HomePageProps) {
               </button>
               <button
                 onClick={() => navigate('generate-single')}
-                className="px-8 py-4 bg-gradient-to-r from-rose-gold to-dusty-rose text-ivory rounded-md hover:shadow-xl transition-all duration-300 shadow-md font-medium text-lg flex items-center gap-2 hover:-translate-y-0.5"
+                className="px-8 py-4 bg-gradient-to-r from-rose-gold to-dusty-rose text-ivory rounded-md hover:shadow-xl transition-all duration-300 shadow-md font-medium text-lg flex items-center gap-2 hover:-translate-y-0.5 relative group"
               >
                 <Sparkles className="w-5 h-5" />
                 生成单张
+                <div className="absolute -top-2 -right-2 px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full animate-pulse shadow-lg">
+                  HOT
+                </div>
               </button>
               <button
                 onClick={() => navigate('gallery')}
@@ -111,6 +114,30 @@ export function HomePage({ onNavigate }: HomePageProps) {
                 <Heart className="w-5 h-5" />
                 浏览画廊
               </button>
+            </div>
+
+            {/* 每日限额提示横幅 */}
+            <div className="mt-6 mx-auto max-w-2xl">
+              <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 p-[2px] shadow-lg">
+                <div className="relative bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl px-6 py-4">
+                  <div className="flex items-center justify-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-2 text-orange-700 font-semibold">
+                      <Flame className="w-5 h-5 animate-pulse" />
+                      <span className="text-sm md:text-base">每日免费名额有限</span>
+                    </div>
+                    <div className="h-4 w-px bg-orange-300 hidden sm:block" />
+                    <div className="flex items-center gap-2 text-orange-600">
+                      <Clock className="w-4 h-4" />
+                      <span className="text-xs md:text-sm">今日剩余额度即将用完</span>
+                    </div>
+                    <div className="h-4 w-px bg-orange-300 hidden sm:block" />
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-red-600" />
+                      <span className="text-xs md:text-sm font-medium text-red-600">立即体验，错过需等明天</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </FadeIn>
 

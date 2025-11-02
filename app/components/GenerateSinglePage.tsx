@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import Image from 'next/image';
-import { Upload, Sparkles, Wand2, Download, Copy, AlertCircle, CheckCircle, Loader2, Image as ImageIcon, Maximize2, X } from 'lucide-react';
+import { Upload, Sparkles, Wand2, Download, Copy, AlertCircle, CheckCircle, Loader2, Image as ImageIcon, Maximize2, X, Info } from 'lucide-react';
 import { useTemplates } from '@/hooks/useTemplates';
 import { Template } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
@@ -338,7 +338,18 @@ Please focus your modifications ONLY on the user's specific requirements while s
             生成全新的
             <span className="text-dusty-rose"> 梦幻婚纱照</span>
           </h1>
-          <p className="text-xl text-stone">上传照片，选择风格，AI智能生成专属婚纱照</p>
+          <p className="text-xl text-stone mb-6">上传照片，选择风格，AI智能生成专属婚纱照</p>
+
+          {/* 温馨提示 */}
+          <div className="max-w-2xl mx-auto">
+            <div className="flex items-start gap-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-blue-800 text-left">
+                <p className="font-medium mb-1">温馨提示</p>
+                <p>为保护您的隐私，本页面不会储存任何上传或生成的图片数据。如果对生成结果满意，请及时下载保存。</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
@@ -440,6 +451,16 @@ Please focus your modifications ONLY on the user's specific requirements while s
                       </div>
                     </button>
                   </div>
+
+                  {/* 重要提示 */}
+                  <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                    <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-amber-800">
+                      <p className="font-medium mb-1">重要提示</p>
+                      <p>图片满意请及时下载保存，本页面不会自动储存您的生成结果。</p>
+                    </div>
+                  </div>
+
                   <div className="flex gap-3">
                     <button
                       onClick={downloadImage}

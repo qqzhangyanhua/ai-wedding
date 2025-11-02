@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import Image from 'next/image';
-import { Upload, Sparkles, Wand2, Download, Copy, AlertCircle, CheckCircle, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Upload, Sparkles, Wand2, Download, Copy, AlertCircle, CheckCircle, Loader2, Image as ImageIcon, Maximize2, X } from 'lucide-react';
 import { useTemplates } from '@/hooks/useTemplates';
 import { Template } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
@@ -43,6 +43,10 @@ export function GenerateSinglePage() {
   const [streamingContent, setStreamingContent] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // 图片预览
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState<string>('');
 
   // 文件选择处理
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -300,13 +304,25 @@ Please focus your modifications ONLY on the user's specific requirements while s
   // 复制Base64
   const copyBase64 = () => {
     if (!generatedImage) return;
-    
+
     const base64String = generatedImage.split(',')[1];
     navigator.clipboard.writeText(base64String).then(() => {
       setSuccess('Base64数据已复制到剪贴板！');
     }).catch(() => {
       setError('复制失败');
     });
+  };
+
+  // 查看大图
+  const viewImage = (imageUrl: string, title: string) => {
+    setPreviewImage(imageUrl);
+    setPreviewTitle(title);
+  };
+
+  // 关闭预览
+  const closePreview = () => {
+    setPreviewImage(null);
+    setPreviewTitle('');
   };
 
   return (
@@ -316,13 +332,13 @@ Please focus your modifications ONLY on the user's specific requirements while s
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-champagne border border-rose-gold/20 text-navy rounded-full text-sm font-medium tracking-wide shadow-sm mb-6">
             <Wand2 className="w-4 h-4 text-rose-gold" />
-            AI 图片编辑
+            AI 图片生成
           </div>
           <h1 className="text-4xl md:text-5xl font-display font-medium text-navy mb-4">
             生成全新的
-            <span className="text-dusty-rose"> 婚纱照</span>
+            <span className="text-dusty-rose"> 梦幻婚纱照</span>
           </h1>
-          <p className="text-xl text-stone">上传照片，选择风格，让AI为您创造梦幻效果</p>
+          <p className="text-xl text-stone">上传照片，选择风格，AI智能生成专属婚纱照</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
@@ -353,13 +369,21 @@ Please focus your modifications ONLY on the user's specific requirements while s
               />
               {originalImage ? (
                 <div className="space-y-4">
-                  <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden">
+                  <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden group">
                     <Image
                       src={originalImage}
                       alt="原图预览"
                       fill
                       className="object-cover"
                     />
+                    <button
+                      onClick={() => viewImage(originalImage, '原图')}
+                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center"
+                    >
+                      <div className="bg-ivory/90 rounded-full p-3">
+                        <Maximize2 className="w-6 h-6 text-navy" />
+                      </div>
+                    </button>
                   </div>
                   {originalImageFile && (
                     <div className="text-sm text-stone space-y-1">
@@ -386,7 +410,7 @@ Please focus your modifications ONLY on the user's specific requirements while s
           <div className="bg-ivory rounded-xl shadow-sm border border-stone/10 p-6">
             <h2 className="text-xl font-display font-medium text-navy mb-4 flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-rose-gold" />
-              编辑结果
+              生成结果
             </h2>
             
             <div className="border-2 border-dashed border-stone/30 rounded-xl p-8 min-h-[400px] flex items-center justify-center">
@@ -400,13 +424,21 @@ Please focus your modifications ONLY on the user's specific requirements while s
                 </div>
               ) : generatedImage ? (
                 <div className="w-full space-y-4">
-                  <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden">
+                  <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden group">
                     <Image
                       src={generatedImage}
                       alt="生成的图片"
                       fill
                       className="object-cover"
                     />
+                    <button
+                      onClick={() => viewImage(generatedImage, '生成结果')}
+                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center"
+                    >
+                      <div className="bg-ivory/90 rounded-full p-3">
+                        <Maximize2 className="w-6 h-6 text-navy" />
+                      </div>
+                    </button>
                   </div>
                   <div className="flex gap-3">
                     <button
@@ -430,7 +462,7 @@ Please focus your modifications ONLY on the user's specific requirements while s
                   <div className="w-16 h-16 bg-champagne rounded-full flex items-center justify-center mx-auto mb-4">
                     <Sparkles className="w-8 h-8 text-rose-gold" />
                   </div>
-                  <p>编辑后的图片将在这里显示</p>
+                  <p>生成的图片将在这里显示</p>
                 </div>
               )}
             </div>
@@ -540,7 +572,7 @@ Please focus your modifications ONLY on the user's specific requirements while s
 
         {/* 提示词和设置 */}
         <div className="bg-ivory rounded-xl shadow-sm border border-stone/10 p-6 mb-8">
-          <h2 className="text-xl font-display font-medium text-navy mb-4">编辑设置</h2>
+          <h2 className="text-xl font-display font-medium text-navy mb-4">生成设置</h2>
           
           {/* 自定义提示词 */}
           <div className="mb-6">
@@ -560,7 +592,7 @@ Please focus your modifications ONLY on the user's specific requirements while s
                   setSelectedPromptIndex(0);
                 }
               }}
-              placeholder="例如: Change the background to a sunset beach scene with palm trees..."
+              placeholder="例如: Generate a romantic wedding photo in a dreamy sunset beach with soft pink sky and ocean waves..."
               className="w-full px-4 py-3 border border-stone/20 rounded-md focus:ring-2 focus:ring-dusty-rose/30 focus:border-dusty-rose transition-all resize-vertical min-h-[120px] disabled:bg-stone/5 disabled:cursor-not-allowed"
               disabled={!!selectedTemplate}
             />
@@ -630,7 +662,7 @@ Please focus your modifications ONLY on the user's specific requirements while s
             ) : (
               <>
                 <Wand2 className="w-5 h-5" />
-                开始AI编辑
+                开始AI生成
               </>
             )}
           </button>
@@ -656,6 +688,72 @@ Please focus your modifications ONLY on the user's specific requirements while s
           </div>
         )}
       </div>
+
+      {/* 图片预览弹窗 */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={closePreview}
+        >
+          <div className="relative max-w-7xl w-full h-full flex flex-col">
+            {/* 顶部标题栏 */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-display font-medium text-ivory">{previewTitle}</h3>
+              <button
+                onClick={closePreview}
+                className="p-2 bg-ivory/10 hover:bg-ivory/20 rounded-full transition-colors"
+              >
+                <X className="w-6 h-6 text-ivory" />
+              </button>
+            </div>
+
+            {/* 图片容器 */}
+            <div
+              className="flex-1 relative rounded-lg overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Image
+                src={previewImage}
+                alt={previewTitle}
+                fill
+                className="object-contain"
+                quality={100}
+              />
+            </div>
+
+            {/* 底部操作栏 */}
+            <div className="flex gap-3 mt-4 justify-center">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const link = document.createElement('a');
+                  link.href = previewImage;
+                  link.download = `${previewTitle}-${Date.now()}.png`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+                className="px-6 py-3 bg-ivory text-navy rounded-md hover:bg-ivory/90 transition-colors font-medium flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                下载图片
+              </button>
+              {previewTitle === '生成结果' && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    copyBase64();
+                  }}
+                  className="px-6 py-3 bg-ivory/20 text-ivory rounded-md hover:bg-ivory/30 transition-colors font-medium flex items-center gap-2"
+                >
+                  <Copy className="w-4 h-4" />
+                  复制Base64
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
     </div>

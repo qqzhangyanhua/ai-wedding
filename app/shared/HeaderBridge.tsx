@@ -16,6 +16,9 @@ export default function HeaderBridge() {
       case 'templates':
         router.push('/templates');
         break;
+      case 'generate-single':
+        router.push('/generate-single');
+        break;
       case 'gallery':
         router.push('/gallery');
         break;
@@ -39,6 +42,7 @@ export default function HeaderBridge() {
   const currentPage = (() => {
     if (pathname === '/') return 'home';
     if (pathname?.startsWith('/templates')) return 'templates';
+    if (pathname?.startsWith('/generate-single')) return 'generate-single';
     if (pathname?.startsWith('/gallery')) return 'gallery';
     if (pathname?.startsWith('/create')) return 'create';
     if (pathname?.startsWith('/pricing')) return 'pricing';

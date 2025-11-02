@@ -98,6 +98,13 @@ export function HomePage({ onNavigate }: HomePageProps) {
                 <ArrowRight className="w-5 h-5" />
               </button>
               <button
+                onClick={() => navigate('generate-single')}
+                className="px-8 py-4 bg-gradient-to-r from-rose-gold to-dusty-rose text-ivory rounded-md hover:shadow-xl transition-all duration-300 shadow-md font-medium text-lg flex items-center gap-2 hover:-translate-y-0.5"
+              >
+                <Sparkles className="w-5 h-5" />
+                生成单张
+              </button>
+              <button
                 onClick={() => navigate('gallery')}
                 className="px-8 py-4 bg-ivory text-navy border border-stone/20 rounded-md hover:bg-champagne hover:border-stone/30 transition-all duration-300 shadow-sm hover:shadow-md font-medium text-lg hover:-translate-y-0.5 flex items-center gap-2"
               >

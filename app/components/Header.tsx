@@ -46,6 +46,14 @@ export function Header({ onNavigate, currentPage }: HeaderProps) {
                   模板
                 </button>
                 <button
+                  onClick={() => onNavigate('generate-single')}
+                  className={`text-sm font-medium tracking-wide transition-colors duration-200 ${
+                    currentPage === 'generate-single' ? 'text-dusty-rose' : 'text-stone hover:text-navy'
+                  }`}
+                >
+                  生成单张
+                </button>
+                <button
                   onClick={() => onNavigate('gallery')}
                   className={`text-sm font-medium tracking-wide transition-colors duration-200 ${
                     currentPage === 'gallery' ? 'text-dusty-rose' : 'text-stone hover:text-navy'
@@ -137,6 +145,15 @@ export function Header({ onNavigate, currentPage }: HeaderProps) {
                 className="px-4 py-2 w-full text-sm font-medium text-left rounded-md transition-colors text-stone hover:text-navy hover:bg-champagne"
               >
                 模板
+              </button>
+              <button
+                onClick={() => {
+                  onNavigate('generate-single');
+                  setMobileMenuOpen(false);
+                }}
+                className="px-4 py-2 w-full text-sm font-medium text-left rounded-md transition-colors text-stone hover:text-navy hover:bg-champagne"
+              >
+                生成单张
               </button>
               <button
                 onClick={() => {

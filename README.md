@@ -215,6 +215,10 @@ pnpm dev
 
 ## 📱 使用指南
 
+ 其中去 /admin/model-configs配制模型的API地址和密钥
+ 去路由页面 /admin/templates 配制模板
+ 在 profiles表中 记得把自己的主要帐号role设置为admin 才能进去这两个路由页面
+
 ### 用户端使用流程
 
 #### 1. 注册/登录
@@ -512,6 +516,423 @@ ai-wedding/
 ├── package.json                  # 项目依赖
 ├── tailwind.config.js            # Tailwind 配置
 └── tsconfig.json                 # TypeScript 配置
+```
+
+---
+
+## 🗺️ 路由详解
+
+本项目采用 Next.js 14 App Router，以下是所有路由的详细说明。
+
+### 📱 用户端页面路由
+
+#### 主要页面
+
+| 路由 | 文件位置 | 功能说明 | 访问权限 |
+|------|---------|---------|---------|
+| `/` | `app/page.tsx` | 首页，展示平台介绍、功能特性、示例作品 | 公开 |
+| `/templates` | `app/templates/page.tsx` | 模板浏览页，查看所有可用的婚纱照模板 | 公开 |
+| `/gallery` | `app/gallery/page.tsx` | 作品画廊，浏览用户分享的公开作品 | 公开 |
+| `/pricing` | `app/pricing/page.tsx` | 价格页面，展示积分套餐和购买选项 | 公开 |
+| `/testimonials` | `app/testimonials/page.tsx` | 用户评价页，展示用户使用体验 | 公开 |
+
+#### 功能页面
+
+| 路由 | 文件位置 | 功能说明 | 访问权限 |
+|------|---------|---------|---------|
+| `/create` | `app/create/page.tsx` | 创建项目页，上传照片并选择模板生成婚纱照 | 需要登录 |
+| `/dashboard` | `app/dashboard/page.tsx` | 用户仪表盘，查看所有项目和生成历史 | 需要登录 |
+| `/results/[id]` | `app/results/[id]/page.tsx` | 项目结果页，查看特定项目的生成结果 | 需要登录 |
+| `/generate-single` | `app/generate-single/page.tsx` | 单图快速生成页，快速生成单张婚纱照 | 需要登录 |
+
+#### 认证路由
+
+| 路由 | 文件位置 | 功能说明 | 访问权限 |
+|------|---------|---------|---------|
+| `/auth/callback` | `app/auth/callback/page.tsx` | OAuth 回调页面，处理 Google 登录后的回调 | 公开 |
+
+### 🔧 管理员页面路由
+
+所有管理员路由都需要管理员权限（`role = 'admin'`），通过 `lib/auth-admin.ts` 进行权限验证。
+
+#### 模板管理
+
+| 路由 | 文件位置 | 功能说明 |
+|------|---------|---------|
+| `/admin/templates` | `app/admin/templates/page.tsx` | 模板管理列表页，查看、编辑、删除模板 |
+| `/admin/templates/new` | `app/admin/templates/new/page.tsx` | 创建新模板页面 |
+| `/admin/templates/[id]` | `app/admin/templates/[id]/page.tsx` | 编辑特定模板页面 |
+
+**功能特性：**
+- ✅ 查看所有模板列表
+- ✅ 创建新模板（包括上传预览图）
+- ✅ 编辑模板信息（名称、描述、提示词列表）
+- ✅ 启用/禁用模板
+- ✅ 复制模板（快速创建相似模板）
+- ✅ 删除模板
+- ✅ 模板排序
+
+**权限控制：**
+```typescript
+// 在客户端检查登录状态
+const { data: { session } } = await supabase.auth.getSession();
+if (!session) {
+  router.push('/');
+  return;
+}
+
+// 在服务端验证管理员权限
+const profile = await verifyAdmin(req);
+if (profile.role !== 'admin') {
+  throw new Error('Forbidden: Admin access required');
+}
+```
+
+#### 模型配置管理
+
+| 路由 | 文件位置 | 功能说明 |
+|------|---------|---------|
+| `/admin/model-configs` | `app/admin/model-configs/page.tsx` | AI 模型配置管理页面 |
+
+**功能特性：**
+- ✅ 查看所有模型配置列表
+- ✅ 创建新配置（支持图片生成和图片识别两种类型）
+- ✅ 编辑配置信息（API Base URL、API Key、模型名称）
+- ✅ 激活/停用配置（实时切换，无需重启）
+- ✅ 删除配置
+- ✅ 配置测试
+
+**配置类型：**
+- `image-generation`: 图片生成配置（用于生成婚纱照）
+- `identify-image`: 图片识别配置（用于人物检测）
+
+**动态配置原理：**
+系统会从数据库读取激活的配置，无需重启服务即可切换 AI 模型。
+
+### 🔌 API 路由
+
+#### 图片生成 API
+
+| 路由 | 文件位置 | 方法 | 功能说明 |
+|------|---------|------|---------|
+| `/api/generate-image` | `app/api/generate-image/route.ts` | POST | 标准图片生成 API |
+| `/api/generate-stream` | `app/api/generate-stream/route.ts` | POST | 流式图片生成 API（实时反馈） |
+
+**请求参数：**
+```typescript
+{
+  projectId: string;        // 项目 ID
+  templateId: string;       // 模板 ID
+  photoUrls: string[];      // 照片 URL 列表
+  prompt?: string;          // 自定义提示词（可选）
+}
+```
+
+**响应格式：**
+```typescript
+// 标准模式
+{
+  success: true,
+  imageUrl: string;        // 生成的图片 URL
+  generationId: string;    // 生成记录 ID
+}
+
+// 流式模式（Server-Sent Events）
+data: {"status":"generating","progress":0}
+data: {"status":"generating","progress":50}
+data: {"status":"completed","imageUrl":"..."}
+```
+
+#### 图片识别 API
+
+| 路由 | 文件位置 | 方法 | 功能说明 |
+|------|---------|------|---------|
+| `/api/identify-image` | `app/api/identify-image/route.ts` | POST | 人物检测 API，验证照片是否包含人物 |
+
+**请求参数：**
+```typescript
+{
+  imageUrl: string;        // 图片 URL
+  imageBase64?: string;    // 或 Base64 编码的图片
+}
+```
+
+**响应格式：**
+```typescript
+{
+  hasPerson: boolean;      // 是否检测到人物
+  confidence: number;      // 置信度 (0-1)
+  message: string;         // 描述信息
+}
+```
+
+#### 图片上传 API
+
+| 路由 | 文件位置 | 方法 | 功能说明 |
+|------|---------|------|---------|
+| `/api/upload-image` | `app/api/upload-image/route.ts` | POST | 上传用户照片到 MinIO/Supabase Storage |
+
+**请求参数：**
+```typescript
+FormData {
+  file: File;              // 图片文件
+  projectId: string;       // 项目 ID
+}
+```
+
+**响应格式：**
+```typescript
+{
+  url: string;             // 上传后的图片 URL
+  filename: string;        // 文件名
+}
+```
+
+#### 模板 API
+
+| 路由 | 文件位置 | 方法 | 功能说明 |
+|------|---------|------|---------|
+| `/api/templates` | `app/api/templates/route.ts` | GET | 获取所有启用的模板（用户端） |
+
+**查询参数：**
+- `enabled`: 是否只返回启用的模板（默认 true）
+- `limit`: 返回数量限制
+- `offset`: 分页偏移
+
+#### 画廊 API
+
+| 路由 | 文件位置 | 方法 | 功能说明 |
+|------|---------|------|---------|
+| `/api/gallery` | `app/api/gallery/route.ts` | GET | 获取公开分享的作品列表 |
+
+**查询参数：**
+- `sort`: 排序方式（`latest` / `popular`）
+- `limit`: 返回数量
+- `offset`: 分页偏移
+
+#### 订单 API
+
+| 路由 | 文件位置 | 方法 | 功能说明 |
+|------|---------|------|---------|
+| `/api/orders/create` | `app/api/orders/create/route.ts` | POST | 创建订单 |
+| `/api/orders/validate` | `app/api/orders/validate/route.ts` | POST | 验证订单状态 |
+| `/api/orders/webhook/stripe` | `app/api/orders/webhook/stripe/route.ts` | POST | Stripe 支付回调 |
+| `/api/orders/mock/confirm` | `app/api/orders/mock/confirm/route.ts` | POST | 模拟支付确认（测试用） |
+
+#### 邀请 API
+
+| 路由 | 文件位置 | 方法 | 功能说明 |
+|------|---------|------|---------|
+| `/api/invite/claim` | `app/api/invite/claim/route.ts` | POST | 领取邀请奖励 |
+
+#### 图片交互 API
+
+| 路由 | 文件位置 | 方法 | 功能说明 |
+|------|---------|------|---------|
+| `/api/images/track-download` | `app/api/images/track-download/route.ts` | POST | 跟踪图片下载次数 |
+| `/api/generations/[id]/share` | `app/api/generations/[id]/share/route.ts` | POST/DELETE | 分享/取消分享作品到画廊 |
+
+### 🔐 管理员 API 路由
+
+所有管理员 API 都需要通过 `requireAdmin()` 进行权限验证。
+
+#### 模板管理 API
+
+| 路由 | 文件位置 | 方法 | 功能说明 |
+|------|---------|------|---------|
+| `/api/admin/templates` | `app/api/admin/templates/route.ts` | GET | 获取所有模板（包括禁用的） |
+| `/api/admin/templates` | `app/api/admin/templates/route.ts` | POST | 创建新模板 |
+| `/api/admin/templates/[id]` | `app/api/admin/templates/[id]/route.ts` | GET | 获取特定模板详情 |
+| `/api/admin/templates/[id]` | `app/api/admin/templates/[id]/route.ts` | PUT | 更新模板信息 |
+| `/api/admin/templates/[id]` | `app/api/admin/templates/[id]/route.ts` | DELETE | 删除模板 |
+
+**权限验证示例：**
+```typescript
+export async function GET(req: NextRequest) {
+  const result = await requireAdmin(req);
+  if (result instanceof Response) {
+    return result; // 返回 401/403 错误
+  }
+  const { profile } = result;
+  
+  // 继续处理请求...
+}
+```
+
+**请求头要求：**
+```
+Authorization: Bearer <supabase_access_token>
+```
+
+#### 模型配置 API
+
+| 路由 | 文件位置 | 方法 | 功能说明 |
+|------|---------|------|---------|
+| `/api/admin/model-configs` | `app/api/admin/model-configs/route.ts` | GET | 获取所有模型配置 |
+| `/api/admin/model-configs` | `app/api/admin/model-configs/route.ts` | POST | 创建新配置 |
+| `/api/admin/model-configs/[id]` | `app/api/admin/model-configs/[id]/route.ts` | PUT | 更新配置 |
+| `/api/admin/model-configs/[id]` | `app/api/admin/model-configs/[id]/route.ts` | DELETE | 删除配置 |
+
+**创建配置示例：**
+```typescript
+// POST /api/admin/model-configs
+{
+  name: "默认图片生成配置",
+  description: "使用 DALL-E 3 生成图片",
+  type: "image-generation",
+  api_base_url: "https://api.openai.com",
+  api_key: "sk-...",
+  model_name: "dall-e-3",
+  is_active: true
+}
+```
+
+#### 模板图片上传 API
+
+| 路由 | 文件位置 | 方法 | 功能说明 |
+|------|---------|------|---------|
+| `/api/admin/upload-template-image` | `app/api/admin/upload-template-image/route.ts` | POST | 上传模板预览图 |
+
+**请求格式：**
+```typescript
+FormData {
+  file: File;              // 图片文件
+  templateId?: string;     // 模板 ID（可选）
+}
+```
+
+#### 激活配置 API
+
+| 路由 | 文件位置 | 方法 | 功能说明 |
+|------|---------|------|---------|
+| `/api/model-configs/active` | `app/api/model-configs/active/route.ts` | GET | 获取当前激活的模型配置 |
+
+**查询参数：**
+- `type`: 配置类型（`image-generation` / `identify-image`）
+
+**响应格式：**
+```typescript
+{
+  id: string;
+  name: string;
+  type: string;
+  api_base_url: string;
+  api_key: string;         // 加密后的密钥
+  model_name: string;
+  is_active: true;
+}
+```
+
+### 🐛 调试 API 路由
+
+仅在开发环境可用，用于调试和测试。
+
+| 路由 | 文件位置 | 方法 | 功能说明 |
+|------|---------|------|---------|
+| `/api/debug/check-data` | `app/api/debug/check-data/route.ts` | GET | 检查数据库数据完整性 |
+| `/api/debug/gallery` | `app/api/debug/gallery/route.ts` | GET | 调试画廊数据 |
+| `/api/test-data` | `app/api/test-data/route.ts` | GET | 获取测试数据 |
+
+### 🔒 权限控制说明
+
+#### 用户端页面权限
+
+通过 `middleware.ts` 保护需要登录的页面：
+
+```typescript
+// middleware.ts
+export const config = {
+  matcher: ['/dashboard', '/results/:path*', '/create'],
+};
+```
+
+**注意：** 默认情况下中间件未启用（`ENABLE_SSR_GUARD !== 'true'`），权限控制主要在客户端通过 Supabase Auth 实现。
+
+#### 管理员权限验证
+
+**数据库层面：**
+```sql
+-- profiles 表的 role 字段
+role TEXT DEFAULT 'user' CHECK (role IN ('user', 'admin'))
+```
+
+**服务端验证：**
+```typescript
+// lib/auth-admin.ts
+export async function verifyAdmin(req: NextRequest): Promise<Profile> {
+  // 1. 验证 JWT token
+  const token = authHeader?.split(' ')[1];
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  // 2. 查询用户 profile
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
+  
+  // 3. 检查 role
+  if (profile.role !== 'admin') {
+    throw new Error('Forbidden: Admin access required');
+  }
+  
+  return profile;
+}
+```
+
+**客户端验证：**
+```typescript
+// 在管理员页面组件中
+const { data: { session } } = await supabase.auth.getSession();
+if (!session) {
+  router.push('/');
+  return;
+}
+
+// 调用 API 时携带 token
+const response = await fetch('/api/admin/templates', {
+  headers: {
+    Authorization: `Bearer ${session.access_token}`,
+  },
+});
+
+if (response.status === 403) {
+  setError('访问被拒绝，需要管理员权限。');
+}
+```
+
+### 🔄 路由命名规范
+
+本项目遵循 Next.js 14 App Router 约定：
+
+- `page.tsx`: 页面组件
+- `route.ts`: API 路由处理器
+- `[id]`: 动态路由参数
+- `[...slug]`: 捕获所有路由
+
+**示例：**
+```
+/admin/templates/[id]/page.tsx  →  /admin/templates/123
+/api/admin/templates/[id]/route.ts  →  /api/admin/templates/123
+```
+
+### 📊 路由性能优化
+
+1. **静态页面生成（SSG）**：
+   - 首页、模板页、画廊页使用 ISR（增量静态生成）
+   
+2. **服务端渲染（SSR）**：
+   - 动态内容页面（仪表盘、结果页）
+
+3. **客户端渲染（CSR）**：
+   - 管理员页面（需要实时数据）
+
+4. **Edge Runtime**：
+   - API 路由使用 Edge Runtime 提升响应速度
+
+```typescript
+// 在 route.ts 中指定
+export const runtime = 'edge';
 ```
 
 ---
@@ -1411,3 +1832,119 @@ Made with ❤️ by [AI Wedding Team](https://github.com/your-username)
 Copyright © 2025 AI Wedding. All rights reserved.
 
 </div>
+
+---
+
+## 📋 附录：路由快速参考
+
+### 用户端页面（公开访问）
+
+```
+GET  /                    - 首页
+GET  /templates           - 模板浏览
+GET  /gallery             - 作品画廊
+GET  /pricing             - 价格页面
+GET  /testimonials        - 用户评价
+```
+
+### 用户端页面（需要登录）
+
+```
+GET  /create              - 创建项目
+GET  /dashboard           - 用户仪表盘
+GET  /results/[id]        - 项目结果详情
+GET  /generate-single     - 快速生成单图
+```
+
+### 管理员页面（需要管理员权限）
+
+```
+GET  /admin/templates           - 模板管理列表
+GET  /admin/templates/new       - 创建新模板
+GET  /admin/templates/[id]      - 编辑模板
+GET  /admin/model-configs       - 模型配置管理
+```
+
+### 用户端 API
+
+```
+# 图片生成
+POST /api/generate-image        - 标准图片生成
+POST /api/generate-stream       - 流式图片生成
+
+# 图片处理
+POST /api/upload-image          - 上传照片
+POST /api/identify-image        - 人物检测
+
+# 模板和画廊
+GET  /api/templates             - 获取模板列表
+GET  /api/gallery               - 获取画廊作品
+
+# 用户互动
+POST /api/images/track-download           - 跟踪下载
+POST /api/generations/[id]/share          - 分享作品
+DELETE /api/generations/[id]/share        - 取消分享
+
+# 订单和支付
+POST /api/orders/create                   - 创建订单
+POST /api/orders/validate                 - 验证订单
+POST /api/orders/webhook/stripe           - Stripe 回调
+POST /api/orders/mock/confirm             - 模拟支付
+
+# 邀请系统
+POST /api/invite/claim                    - 领取邀请奖励
+```
+
+### 管理员 API（需要管理员权限 + Authorization Header）
+
+```
+# 模板管理
+GET    /api/admin/templates              - 获取所有模板
+POST   /api/admin/templates              - 创建模板
+GET    /api/admin/templates/[id]         - 获取模板详情
+PUT    /api/admin/templates/[id]         - 更新模板
+DELETE /api/admin/templates/[id]         - 删除模板
+POST   /api/admin/upload-template-image  - 上传模板图片
+
+# 模型配置管理
+GET    /api/admin/model-configs          - 获取所有配置
+POST   /api/admin/model-configs          - 创建配置
+PUT    /api/admin/model-configs/[id]     - 更新配置
+DELETE /api/admin/model-configs/[id]     - 删除配置
+GET    /api/model-configs/active         - 获取激活配置
+```
+
+### 调试 API（开发环境）
+
+```
+GET  /api/debug/check-data      - 检查数据完整性
+GET  /api/debug/gallery         - 调试画廊数据
+GET  /api/test-data             - 获取测试数据
+```
+
+### 如何访问管理员功能
+
+1. **设置管理员权限**（在数据库中）：
+   ```sql
+   UPDATE profiles 
+   SET role = 'admin' 
+   WHERE email = 'your-admin@example.com';
+   ```
+
+2. **访问管理员页面**：
+   - 登录后访问 `/admin/templates` 或 `/admin/model-configs`
+   - 系统会自动验证权限
+
+3. **调用管理员 API**：
+   ```typescript
+   const { data: { session } } = await supabase.auth.getSession();
+   
+   const response = await fetch('/api/admin/templates', {
+     headers: {
+       'Authorization': `Bearer ${session.access_token}`,
+       'Content-Type': 'application/json',
+     },
+   });
+   ```
+
+---

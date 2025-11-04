@@ -2,15 +2,14 @@
 
 <div align="center">
 
-一个基于 AI 技术的智能婚纱照生成平台，让用户无需昂贵的摄影服务，即可创造梦幻般的婚纱照片。
+基于 AI 技术的智能婚纱照生成平台，上传照片，选择模板，AI 自动生成专业婚纱照。
 
 [![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-Latest-green)](https://supabase.com/)
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4-38bdf8)](https://tailwindcss.com/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-[在线演示](#) | [功能特性](#-核心功能) | [快速开始](#-快速开始) | [使用指南](#-使用指南) | [文档](#-文档)
+[功能特性](#-核心功能) | [快速开始](#-快速开始) | [文档](#-文档)
 
 </div>
 
@@ -18,124 +17,36 @@
 
 ## 📖 项目简介
 
-AI 婚纱照生成平台是一个全栈 Web 应用，通过 AI 图像生成技术，让用户上传自己的照片，选择心仪的场景模板（巴黎、东京、冰岛等），即可生成专业级婚纱照。相比传统摄影服务，成本仅为 1/10，且 5 分钟内即可完成。
+通过 AI 图像生成技术，让用户上传照片并选择场景模板（巴黎、东京、冰岛等），快速生成专业级婚纱照。
 
-### ✨ 核心亮点
+### ✨ 核心特性
 
-- 💡 **智能 AI 生成**：基于先进的 AI 模型（DALL-E 3 / Gemini 2.5），生成高质量婚纱照
-- 🎯 **人物识别验证**：自动检测上传照片是否包含人物，确保生成效果
-- 🚀 **快速生成**：平均 2-5 分钟即可完成，无需等待
-- 💰 **经济实惠**：成本仅为传统摄影服务的 1/10
-- 🎨 **丰富模板**：10+ 精美场景模板，持续更新
-- 🔧 **灵活配置**：管理员可动态配置 AI 模型，无需重启服务
-- 📱 **响应式设计**：完美支持桌面端和移动端
+- 💡 **AI 图像生成**：支持 DALL-E 3 / Gemini 2.5 等多种模型
+- 🎯 **人物识别**：自动检测上传照片是否包含人物
+- 🔧 **动态配置**：管理员可动态切换 AI 模型，无需重启
+- 🎨 **模板系统**：10+ 精美场景模板，支持自定义提示词
+- 🌐 **画廊分享**：作品分享、点赞、收藏功能
+- 💰 **积分系统**：积分购买、邀请奖励机制
 
 ### 🎯 核心功能
 
-#### 用户端功能
-- 🖼️ **智能照片生成**
-  - 支持单人/双人照片上传
-  - 自动人物识别验证
-  - 实时生成进度显示
-  - 高清图片下载（支持批量下载）
-  
-- 🎨 **丰富模板库**
-  - 10+ 精美场景模板（巴黎、圣托里尼、东京樱花、冰岛极光等）
-  - 支持模板预览和详情查看
-  - 模板分类和标签筛选
-  - 实时更新最新模板
-  
-- 🔍 **智能照片识别**
-  - 基于 GPT-4o-mini 的人物检测
-  - 自动验证照片质量
-  - 实时反馈识别结果
-  - 防止无效照片上传
-  
-- 📊 **项目管理**
-  - 查看所有生成项目
-  - 项目状态实时更新（生成中/已完成/失败）
-  - 项目详情查看（包含所有生成图片）
-  - 项目编辑和删除
-  - 项目统计图表
-  
-- ❤️ **互动功能**
-  - 点赞喜欢的作品
-  - 收藏优秀作品到个人收藏夹
-  - 分享作品到公开画廊
-  - 查看作品的点赞和浏览数
-  
-- 🌐 **画廊浏览**
-  - 浏览所有公开分享的作品
-  - 按热度/最新排序
-  - 作品详情查看
-  - 点赞和收藏功能
-  
-- 💰 **积分系统**
-  - 多种积分套餐选择
-  - 邀请好友获得积分奖励
-  - 积分消费记录查询
-  - 订单管理
-  
-- 🔐 **多种登录方式**
-  - 邮箱/密码注册登录
-  - Google OAuth 快速登录
-  - 自动保持登录状态
-  - 安全的会话管理
+#### 用户端
+- 🖼️ **照片生成**：上传照片 → 选择模板 → AI 自动生成
+- 🔍 **智能识别**：自动验证照片是否包含人物
+- 📊 **项目管理**：查看生成历史、编辑删除项目
+- 🌐 **画廊浏览**：浏览公开作品、点赞收藏
+- 💰 **积分管理**：购买积分、邀请好友获得奖励
 
-#### 管理员功能
-- 🛠️ **模板管理**
-  - 创建新模板（支持图片上传）
-  - 编辑模板信息（名称、描述、提示词）
-  - 模板排序和启用/禁用
-  - 批量管理模板
-  - 模板使用统计
-  
-- ⚙️ **模型配置管理**
-  - 动态配置 AI 模型 API（无需重启服务）
-  - 支持多个模型配置（图片生成、图片识别）
-  - 实时切换激活的模型
-  - API 密钥安全管理
-  - 模型配置测试
-  
-- 📈 **数据统计**
-  - 用户活跃度分析
-  - 生成量统计
-  - 收入数据分析
-  - 模板使用排行
-  - 实时数据更新
-  
-- 👥 **用户管理**
-  - 查看所有用户信息
-  - 用户积分管理
-  - 用户生成记录
-  - 用户行为分析
+#### 管理员
+- 🛠️ **模板管理**：创建/编辑模板、配置提示词
+- ⚙️ **模型配置**：动态切换 AI 模型（图片生成、图片识别）
+- 📈 **数据统计**：用户活跃度、生成量、收入分析
 
 ### 🏗️ 技术栈
 
-#### 前端
-- **框架**: Next.js 14 (App Router)
-- **语言**: TypeScript 5.5
-- **样式**: TailwindCSS 3.4 + shadcn/ui
-- **动画**: GSAP + Framer Motion
-- **状态管理**: React Context + Hooks
-- **UI 组件**: Radix UI + Lucide Icons
-
-#### 后端
-- **运行时**: Node.js 18+ / Edge Runtime
-- **数据库**: Supabase (PostgreSQL)
-- **认证**: Supabase Auth (邮箱/密码 + Google OAuth)
-- **存储**: MinIO / Supabase Storage
-- **API**: Next.js API Routes (RESTful)
-
-#### AI 集成
-- **图像生成**: OpenAI DALL-E 3 / Gemini 2.5 Flash Image
-- **图像识别**: GPT-4o-mini (人物检测)
-- **兼容性**: 支持所有 OpenAI 兼容 API
-
-#### 开发工具
-- **包管理**: pnpm
-- **代码规范**: ESLint + TypeScript Strict Mode
-- **部署**: Vercel / PM2 + Nginx
+**前端**: Next.js 14 + TypeScript + TailwindCSS  
+**后端**: Supabase (PostgreSQL) + MinIO 存储  
+**AI**: OpenAI / Gemini / 兼容 API
 
 ---
 
@@ -143,9 +54,9 @@ AI 婚纱照生成平台是一个全栈 Web 应用，通过 AI 图像生成技�
 
 ### 前置要求
 
-- Node.js 18+ 
-- pnpm (推荐) / npm / yarn
-- Supabase 账号 ([免费注册](https://supabase.com))
+- Node.js 18+
+- pnpm
+- Supabase 账号
 - OpenAI API Key 或兼容服务
 
 ### 1️⃣ 克隆项目
@@ -163,7 +74,7 @@ pnpm install
 
 ### 3️⃣ 配置环境变量
 
-复制环境变量模板并填写配置：
+复制环境变量模板：
 
 ```bash
 cp .env.example .env
@@ -172,50 +83,30 @@ cp .env.example .env
 编辑 `.env` 文件：
 
 ```bash
-# Supabase 配置（必填）
+# Supabase 配置
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
-# AI 图像生成配置（必填）
-IMAGE_API_MODE=chat                          # 'images' 或 'chat'
-IMAGE_API_BASE_URL=https://api.openai.com    # API 基础 URL
-IMAGE_API_KEY=sk-your-api-key                # API 密钥
-IMAGE_CHAT_MODEL=gpt-4o                      # chat 模式使用的模型
-IMAGE_IMAGE_MODEL=dall-e-3                   # images 模式使用的模型
-
-# MinIO 对象存储配置（可选，用于图片存储）
+# MinIO 存储（可选）
 MINIO_ENDPOINT=http://localhost:9000
 MINIO_ACCESS_KEY=minioadmin
 MINIO_SECRET_KEY=minioadmin
 MINIO_BUCKET_NAME=ai-images
 MINIO_USE_SSL=false
-
-# 服务端密钥（可选，用于 Webhook）
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
 ### 4️⃣ 初始化数据库
 
-在 Supabase Dashboard 的 SQL Editor 中执行以下文件：
+在 Supabase Dashboard 的 SQL Editor 中执行：
 
-1. **基础表结构**: `database-schema.sql`
-2. **触发器**: `database-triggers.sql`
-3. **模型配置表**: `database-migrations/2025-10-15-create-model-configs.sql`
-4. **模板提示词**: `database-migrations/2025-10-14-add-template-prompt-list.sql`
+```sql
+-- 执行 init.sql 文件内容即可完成所有表结构、触发器、示例数据的初始化
+```
 
-### 5️⃣ 配置管理员权限（⚠️ 重要）
+将 `init.sql` 文件的内容粘贴到 SQL Editor 中执行。
 
-在开始使用管理后台之前，必须先设置管理员权限。
-
-#### 方式一：在 Supabase Dashboard 设置（推荐）
-
-1. 打开 Supabase Dashboard → Table Editor
-2. 找到 `profiles` 表
-3. 找到你的账号记录（通过邮箱或 ID）
-4. 编辑该记录，将 `role` 字段从 `user` 改为 `admin`
-5. 保存更改
-
-#### 方式二：使用 SQL 命令
+### 5️⃣ 设置管理员权限
 
 在 Supabase SQL Editor 中执行：
 
@@ -225,47 +116,33 @@ UPDATE profiles
 SET role = 'admin' 
 WHERE email = 'your-admin-email@example.com';
 
--- 或通过用户 ID 设置
-UPDATE profiles 
-SET role = 'admin' 
-WHERE id = 'your-user-id';
-
 -- 验证设置是否成功
 SELECT id, email, role, created_at 
 FROM profiles 
 WHERE role = 'admin';
 ```
 
-**⚠️ 注意事项：**
-- 只有 `role = 'admin'` 的用户才能访问管理后台
-- 建议只设置 1-2 个可信任的管理员账号
-- 管理员拥有完全的系统控制权限，请谨慎设置
+### 6️⃣ 配置 AI 模型
 
-### 6️⃣ 配置 AI 模型（首次部署必做）
+启动服务后，访问管理后台配置 AI 模型。
 
-启动服务后，需要在管理后台配置 AI 模型才能正常使用。
+#### 启动开发服务器
 
-#### 步骤 1：访问模型配置页面
+```bash
+pnpm dev
+```
 
-1. 启动开发服务器：
-   ```bash
-   pnpm dev
-   ```
+访问 [http://localhost:3000](http://localhost:3000)
 
-2. 访问 [http://localhost:3000](http://localhost:3000)
+#### 添加图片生成配置
 
-3. 使用管理员账号登录
+1. 使用管理员账号登录
+2. 访问 [http://localhost:3000/admin/model-configs](http://localhost:3000/admin/model-configs)
+3. 点击"新建配置"
 
-4. 访问 [http://localhost:3000/admin/model-configs](http://localhost:3000/admin/model-configs)
-
-#### 步骤 2：添加图片生成配置
-
-点击"新建配置"，填写以下信息：
-
-**配置示例（使用 OpenAI DALL-E 3）：**
+**配置示例（OpenAI DALL-E 3）：**
 ```
 配置名称：默认图片生成配置
-配置描述：使用 DALL-E 3 生成婚纱照
 用途类型：图片生成 (image-generation)
 API Base URL：https://api.openai.com
 API Key：sk-your-openai-api-key
@@ -273,10 +150,9 @@ API Key：sk-your-openai-api-key
 状态：激活 ✅
 ```
 
-**配置示例（使用 302.AI 或其他兼容服务）：**
+**配置示例（302.AI / Gemini）：**
 ```
-配置名称：302.AI 图片生成
-配置描述：使用 302.AI 的 Gemini 2.5 Flash 生成图片
+配置名称：Gemini 图片生成
 用途类型：图片生成 (image-generation)
 API Base URL：https://api.302.ai/v1
 API Key：sk-your-302ai-key
@@ -284,13 +160,10 @@ API Key：sk-your-302ai-key
 状态：激活 ✅
 ```
 
-#### 步骤 3：添加图片识别配置
-
-再次点击"新建配置"，添加人物识别配置：
+#### 添加图片识别配置
 
 ```
 配置名称：人物识别配置
-配置描述：用于检测上传照片是否包含人物
 用途类型：图片识别 (identify-image)
 API Base URL：https://api.openai.com
 API Key：sk-your-openai-api-key
@@ -298,340 +171,68 @@ API Key：sk-your-openai-api-key
 状态：激活 ✅
 ```
 
-**💡 提示：**
-- 可以配置多个模型，但每种用途类型（图片生成/图片识别）只能有一个激活的配置
-- 切换模型配置无需重启服务，点击"激活"即可立即生效
-- API Key 会加密存储在数据库中
+### 7️⃣ 创建模板（可选）
 
-### 7️⃣ 配置模板（首次部署必做）
+系统已包含 10 个示例模板，可直接使用。如需自定义：
 
-#### 步骤 1：访问模板管理页面
+1. 访问 [http://localhost:3000/admin/templates](http://localhost:3000/admin/templates)
+2. 点击"新建模板"
+3. 填写信息并上传预览图
+4. 配置提示词列表
 
-访问 [http://localhost:3000/admin/templates](http://localhost:3000/admin/templates)
-
-#### 步骤 2：创建第一个模板
-
-1. 点击"新建模板"按钮
-2. 填写模板信息：
-
-```
-模板名称：巴黎埃菲尔铁塔婚纱照
-模板描述：浪漫的巴黎埃菲尔铁塔下的婚纱照
-场景类型：经典
-排序：0
-状态：启用 ✅
-```
-
-3. 上传模板预览图（建议尺寸：1024x1024）
-
-4. 配置提示词列表（点击"添加提示词"）：
-
+**提示词示例：**
 ```json
 [
   {
-    "prompt": "A romantic wedding photo in front of the Eiffel Tower in Paris, elegant white wedding dress, handsome groom in black suit, golden hour lighting, professional photography, high quality, 8K resolution, cinematic composition",
-    "weight": 1
-  },
-  {
-    "prompt": "Professional wedding photography at Eiffel Tower, Paris, beautiful bride and groom, sunset lighting, dreamy atmosphere, ultra high quality, detailed, romantic mood",
+    "prompt": "A romantic wedding photo in front of the Eiffel Tower in Paris, elegant white wedding dress, handsome groom in black suit, golden hour lighting, professional photography, high quality, 8K resolution",
     "weight": 1
   }
 ]
 ```
 
-5. 点击"保存"
+### 8️⃣ 测试功能
 
-#### 步骤 3：添加更多模板（可选）
-
-参考以下模板类型创建多个模板：
-
-- 🗼 **巴黎风格**：埃菲尔铁塔、塞纳河畔
-- 🏝️ **海岛风格**：圣托里尼、马尔代夫
-- 🌸 **日式风格**：京都樱花、神社
-- 🏔️ **自然风格**：冰岛极光、瑞士雪山
-- 🏛️ **古典风格**：欧式城堡、中式园林
-- 💒 **韩式风格**：室内棚拍、简约清新
-- 🎎 **中式风格**：传统婚服、喜庆红色
-
-**💡 模板配置技巧：**
-- 每个模板建议配置 2-3 个提示词变体
-- 提示词应包含：场景描述、人物服装、光线氛围、质量要求
-- 使用英文提示词通常能获得更好的生成效果
-- 详细提示词参考：[提示词优化文档](docs/prompt-optimization-v3-success-case.md)
-
-### 8️⃣ 测试系统功能
-
-完成上述配置后，建议进行以下测试：
-
-#### 1. 测试用户注册和登录
-```
-✅ 邮箱注册是否正常
-✅ Google OAuth 登录是否正常
-✅ 登录状态是否持久化
-```
-
-#### 2. 测试图片识别
-```
-✅ 上传包含人物的照片 → 应该通过验证
-✅ 上传风景照片 → 应该提示未检测到人物
-```
-
-#### 3. 测试图片生成
-```
-✅ 创建新项目
-✅ 上传照片
-✅ 选择模板
-✅ 开始生成 → 应该能看到生成进度
-✅ 查看结果 → 应该能看到生成的图片
-```
-
-#### 4. 测试管理后台
-```
-✅ 模板管理功能是否正常
-✅ 模型配置切换是否生效
-✅ 权限验证是否正确（非管理员无法访问）
-```
-
-### 9️⃣ 启动开发服务器
-
-```bash
-pnpm dev
-```
-
-访问 [http://localhost:3000](http://localhost:3000) 查看应用。
+✅ 注册登录  
+✅ 上传照片（测试人物识别）  
+✅ 创建项目并生成图片  
+✅ 查看结果  
+✅ 管理后台功能
 
 ---
 
 ## 📱 使用指南
 
-### ⚙️ 管理员配置快速检查清单
+### 用户端流程
 
-在开始使用系统之前，请确认以下配置已完成：
+1. **注册登录**：邮箱注册或 Google OAuth
+2. **创建项目**：上传照片 → 选择模板 → 开始生成
+3. **查看结果**：查看生成的图片、下载、分享
+4. **画廊浏览**：浏览其他用户作品、点赞收藏
 
-| 检查项 | 配置位置 | 是否完成 |
-|--------|---------|---------|
-| ✅ 设置管理员权限 | Supabase `profiles` 表，设置 `role = 'admin'` | [ ] |
-| ✅ 配置图片生成模型 | `/admin/model-configs`，添加 `image-generation` 类型配置 | [ ] |
-| ✅ 配置图片识别模型 | `/admin/model-configs`，添加 `identify-image` 类型配置 | [ ] |
-| ✅ 创建至少一个模板 | `/admin/templates`，创建并启用模板 | [ ] |
-| ✅ 测试图片识别功能 | 上传照片测试人物检测 | [ ] |
-| ✅ 测试图片生成功能 | 创建项目并生成测试 | [ ] |
+### 管理员配置
 
-**⚠️ 重要提示：**
-1. **必须先设置管理员权限**，否则无法访问 `/admin/*` 路由
-2. **必须配置 AI 模型**，否则无法生成和识别图片
-3. **必须创建模板**，否则用户无法创建项目
-4. 所有管理员配置都是**首次部署必做项**，缺一不可
+#### 必做配置清单
 
-### 用户端使用流程
+| 配置项 | 位置 | 说明 |
+|--------|------|------|
+| ✅ 设置管理员权限 | Supabase `profiles` 表 | `role = 'admin'` |
+| ✅ 配置图片生成模型 | `/admin/model-configs` | `image-generation` 类型 |
+| ✅ 配置图片识别模型 | `/admin/model-configs` | `identify-image` 类型 |
+| ✅ 检查模板 | `/admin/templates` | 已有 10 个示例模板 |
 
-#### 1. 注册/登录
+#### 模板管理
 
-首次使用需要注册账号，支持两种方式：
+- 创建/编辑模板
+- 上传预览图
+- 配置提示词列表（支持多个提示词随机选择）
+- 设置排序和启用状态
 
-**方式一：邮箱注册**
-1. 点击右上角"登录"按钮
-2. 选择"注册"标签
-3. 输入邮箱和密码（密码至少 6 位）
-4. 点击"注册"完成账号创建
+#### 模型配置
 
-
-#### 2. 创建婚纱照项目
-
-**步骤 1：上传照片**
-1. 进入"创建项目"页面
-2. 点击"上传照片"区域
-3. 选择要生成婚纱照的照片（支持单人/双人照）
-4. 系统自动进行人物识别验证
-5. 验证通过后显示照片预览
-
-**照片要求：**
-- 格式：JPG、PNG、WEBP
-- 大小：不超过 10MB
-- 内容：必须包含清晰的人物面部
-- 建议：光线充足、人物居中、背景简洁
-
-**步骤 2：选择模板**
-1. 浏览模板库，查看不同场景
-2. 点击模板查看详情和示例
-3. 选择心仪的模板（可多选）
-
-**步骤 3：填写项目信息**
-1. 输入项目名称（如"我们的巴黎婚纱照"）
-2. 选择生成数量（每个模板生成 1-4 张）
-3. 查看所需积分
-
-**步骤 4：开始生成**
-1. 确认信息无误后点击"开始生成"
-2. 系统自动扣除积分并开始 AI 生成
-3. 可在仪表盘查看生成进度
-
-#### 3. 查看生成结果
-
-**实时进度查看**
-- 进入"我的项目"页面
-- 查看项目状态：
-  - 🔄 生成中：显示进度百分比和预计时间
-  - ✅ 已完成：显示生成的图片数量
-  - ❌ 失败：显示错误信息
-
-**查看项目详情**
-1. 点击项目卡片进入详情页
-2. 查看所有生成的图片
-3. 支持图片放大预览
-4. 可下载单张或批量下载
-
-**图片操作**
-- 💾 **下载**：下载高清原图
-- ❤️ **点赞**：标记喜欢的作品
-- 🔗 **分享**：分享到公开画廊
-- 🗑️ **删除**：删除不满意的图片
-
-#### 4. 画廊浏览
-
-**浏览公开作品**
-1. 进入"画廊"页面
-2. 浏览其他用户分享的优秀作品
-3. 按热度/最新排序
-4. 点击作品查看大图
-
-**互动功能**
-- ❤️ 点赞喜欢的作品
-- ⭐ 收藏到个人收藏夹
-- 👁️ 查看作品详情
-
-#### 5. 积分管理
-
-**查看积分余额**
-- 右上角显示当前积分数
-- 点击可查看积分明细
-
-**购买积分**
-1. 进入"价格"页面
-2. 选择合适的积分套餐
-3. 完成支付（支持多种支付方式）
-4. 积分自动到账
-
-**邀请好友获得积分**
-1. 进入"我的项目"页面
-2. 点击"邀请好友"
-3. 复制邀请链接分享给好友
-4. 好友注册后双方都获得积分奖励
-
-### 管理员使用指南
-
-#### 1. 模板管理
-
-![模板管理界面](docs/image.png)
-
-**创建新模板**
-1. 进入管理后台 → 模板管理
-2. 点击"新建模板"按钮
-3. 填写模板信息：
-   - 模板名称（如"韩式室内婚纱照风格"）
-   - 模板描述
-   - 场景类型（经典/浪漫/现代等）
-   - 上传模板预览图
-   - 配置提示词列表（用于 AI 生成）
-4. 设置模板排序和状态
-5. 点击"保存"完成创建
-
-**编辑模板**
-1. 在模板列表中找到要编辑的模板
-2. 点击"编辑"按钮
-3. 修改模板信息
-4. 保存更改
-
-**管理模板**
-- 🔄 **复制**：快速创建相似模板
-- 🔧 **启用/停用**：控制模板是否对用户可见
-- 📊 **查看统计**：查看模板使用次数和评分
-- 🗑️ **删除**：删除不再使用的模板
-
-**提示词配置**
-- 每个模板支持配置多个提示词
-- 系统会随机选择一个提示词进行生成
-- 提示词应包含场景描述、风格要求、质量要求等
-- 示例：
-  ```
-  A professional wedding photo in Korean studio style, 
-  elegant white wedding dress, modern minimalist background,
-  soft lighting, high quality, 8K resolution
-  ```
-
-#### 2. 模型配置管理
-
-![模型配置管理界面](docs/image%20copy.png)
-
-**配置说明**
-系统支持配置多个 AI 模型，用于不同的功能：
-- **图片生成**：用于生成婚纱照（如 DALL-E 3、Gemini 2.5）
-- **图片识别**：用于人物检测（如 GPT-4o-mini）
-
-**创建新配置**
-1. 进入管理后台 → 模型配置管理
-2. 点击"新建配置"按钮
-3. 填写配置信息：
-   - 配置名称（如"默认图片生成配置"）
-   - 用途类型（图片生成/图片识别）
-   - API Base URL（如 `https://api.openai.com`）
-   - API Key（安全加密存储）
-   - 模型名称（如 `dall-e-3`、`gpt-4o-mini`）
-4. 点击"保存"完成创建
-
-**激活配置**
-1. 在配置列表中找到要使用的配置
-2. 点击"激活"按钮
-3. 系统立即切换到新配置（无需重启）
-4. 绿色标签表示当前激活的配置
-
-**配置管理**
-- ✏️ **编辑**：修改配置信息
-- 🔄 **切换**：快速切换不同的模型配置
-- 🧪 **测试**：测试配置是否可用
-- 🗑️ **删除**：删除不再使用的配置
-
-**支持的 API 类型**
-- OpenAI API（官方）
-- OpenAI 兼容 API（如 302.AI、SiliconFlow 等）
-- 自定义 API 端点
-
-**配置优势**
-- ✅ 无需重启服务即可切换模型
-- ✅ 支持多个备用配置
-- ✅ API 密钥安全加密存储
-- ✅ 实时生效，不影响正在进行的任务
-
-
-
----
-
-## 🔐 Google 登录配置
-
-### 1. Google Cloud Console 配置
-
-1. 访问 [Google Cloud Console](https://console.cloud.google.com/)
-2. 创建项目 → **API 和服务** → **OAuth 同意屏幕**
-3. 创建 **OAuth 2.0 客户端 ID**（Web 应用）
-4. 添加授权重定向 URI：
-   ```
-   https://<your-supabase-project>.supabase.co/auth/v1/callback
-   ```
-5. 记录 **Client ID** 和 **Client Secret**
-
-### 2. Supabase 配置
-
-1. Supabase Dashboard → **Authentication** → **Providers** → **Google**
-2. 启用 Google Provider，填入 Client ID 和 Client Secret
-3. **URL Configuration**：
-   - Site URL: `http://localhost:3000` (本地) / `https://your-domain.com` (生产)
-   - Redirect URLs: 添加 `http://localhost:3000/auth/callback`
-
-### 3. 验证
-
-1. 启动应用，点击"使用 Google 登录"
-2. 完成 Google 认证后自动跳转回应用
-3. 右上角显示用户头像，表示登录成功
+- 支持多个模型配置
+- 每种用途类型只能有一个激活配置
+- 切换模型无需重启服务
+- API Key 加密存储
 
 ---
 
@@ -641,456 +242,69 @@ pnpm dev
 ai-wedding/
 ├── app/                          # Next.js App Router
 │   ├── api/                      # API 路由
-│   │   ├── generate-image/       # 图片生成（标准模式）
-│   │   ├── generate-stream/      # 图片生成（流式模式）
-│   │   ├── identify-image/       # 图片识别（人物检测）
+│   │   ├── generate-image/       # 图片生成
+│   │   ├── identify-image/       # 图片识别
 │   │   ├── upload-image/         # 图片上传
 │   │   ├── gallery/              # 画廊 API
-│   │   ├── orders/               # 订单管理
-│   │   ├── invite/               # 邀请系统
 │   │   └── admin/                # 管理员 API
 │   ├── components/               # React 组件
-│   │   ├── HomePage.tsx          # 首页
-│   │   ├── CreatePage.tsx        # 创建项目页
-│   │   ├── DashboardPage.tsx     # 仪表盘
-│   │   ├── TemplatesPage.tsx     # 模板浏览
-│   │   ├── PricingPage.tsx       # 价格页
-│   │   ├── PhotoUploader.tsx     # 照片上传组件
 │   │   ├── admin/                # 管理员组件
 │   │   └── ui/                   # UI 基础组件
-│   ├── contexts/                 # React Context
-│   │   └── AuthContext.tsx       # 认证上下文
 │   ├── hooks/                    # 自定义 Hooks
-│   │   ├── useProjects.ts        # 项目管理
-│   │   ├── useImageGeneration.ts # 图片生成
-│   │   ├── useTemplates.ts       # 模板管理
-│   │   └── ...
 │   ├── lib/                      # 工具函数
-│   │   ├── supabase.ts           # Supabase 客户端
-│   │   ├── validations.ts        # Zod 验证
-│   │   └── ...
-│   ├── types/                    # TypeScript 类型定义
-│   └── layout.tsx                # 根布局
-├── database-migrations/          # 数据库迁移脚本
-├── database-schema.sql           # 数据库表结构
-├── database-triggers.sql         # 数据库触发器
+│   ├── types/                    # TypeScript 类型
+│   └── page.tsx                  # 页面入口
 ├── docs/                         # 项目文档
-│   ├── MODEL_CONFIG_FEATURE.md   # 模型配置功能
-│   ├── IMAGE_IDENTIFICATION_FEATURE.md  # 图片识别功能
-│   ├── STREAMING_IMAGE_API.md    # 流式生成 API
-│   └── ...
-├── scripts/                      # 运维脚本
-│   ├── deploy.sh                 # 部署脚本
-│   ├── fix-minio-403.sh          # MinIO 修复脚本
-│   └── start-pm2.sh              # PM2 启动脚本
-├── .env.example                  # 环境变量模板
+├── init.sql                      # 数据库初始化脚本
 ├── package.json                  # 项目依赖
-├── tailwind.config.js            # Tailwind 配置
-└── tsconfig.json                 # TypeScript 配置
+└── .env.example                  # 环境变量模板
 ```
 
 ---
 
-## 🗺️ 路由详解
+## 🗺️ 路由参考
 
-本项目采用 Next.js 14 App Router，以下是所有路由的详细说明。
+### 用户端页面
 
-### 📱 用户端页面路由
-
-#### 主要页面
-
-| 路由 | 文件位置 | 功能说明 | 访问权限 |
-|------|---------|---------|---------|
-| `/` | `app/page.tsx` | 首页，展示平台介绍、功能特性、示例作品 | 公开 |
-| `/templates` | `app/templates/page.tsx` | 模板浏览页，查看所有可用的婚纱照模板 | 公开 |
-| `/gallery` | `app/gallery/page.tsx` | 作品画廊，浏览用户分享的公开作品 | 公开 |
-| `/pricing` | `app/pricing/page.tsx` | 价格页面，展示积分套餐和购买选项 | 公开 |
-| `/testimonials` | `app/testimonials/page.tsx` | 用户评价页，展示用户使用体验 | 公开 |
-
-#### 功能页面
-
-| 路由 | 文件位置 | 功能说明 | 访问权限 |
-|------|---------|---------|---------|
-| `/create` | `app/create/page.tsx` | 创建项目页，上传照片并选择模板生成婚纱照 | 需要登录 |
-| `/dashboard` | `app/dashboard/page.tsx` | 用户仪表盘，查看所有项目和生成历史 | 需要登录 |
-| `/results/[id]` | `app/results/[id]/page.tsx` | 项目结果页，查看特定项目的生成结果 | 需要登录 |
-| `/generate-single` | `app/generate-single/page.tsx` | 单图快速生成页，快速生成单张婚纱照 | 需要登录 |
-
-#### 认证路由
-
-| 路由 | 文件位置 | 功能说明 | 访问权限 |
-|------|---------|---------|---------|
-| `/auth/callback` | `app/auth/callback/page.tsx` | OAuth 回调页面，处理 Google 登录后的回调 | 公开 |
-
-### 🔧 管理员页面路由
-
-所有管理员路由都需要管理员权限（`role = 'admin'`），通过 `lib/auth-admin.ts` 进行权限验证。
-
-#### 模板管理
-
-| 路由 | 文件位置 | 功能说明 |
-|------|---------|---------|
-| `/admin/templates` | `app/admin/templates/page.tsx` | 模板管理列表页，查看、编辑、删除模板 |
-| `/admin/templates/new` | `app/admin/templates/new/page.tsx` | 创建新模板页面 |
-| `/admin/templates/[id]` | `app/admin/templates/[id]/page.tsx` | 编辑特定模板页面 |
-
-**功能特性：**
-- ✅ 查看所有模板列表
-- ✅ 创建新模板（包括上传预览图）
-- ✅ 编辑模板信息（名称、描述、提示词列表）
-- ✅ 启用/禁用模板
-- ✅ 复制模板（快速创建相似模板）
-- ✅ 删除模板
-- ✅ 模板排序
-
-**权限控制：**
-```typescript
-// 在客户端检查登录状态
-const { data: { session } } = await supabase.auth.getSession();
-if (!session) {
-  router.push('/');
-  return;
-}
-
-// 在服务端验证管理员权限
-const profile = await verifyAdmin(req);
-if (profile.role !== 'admin') {
-  throw new Error('Forbidden: Admin access required');
-}
+```
+GET  /                    - 首页
+GET  /templates           - 模板浏览
+GET  /gallery             - 作品画廊
+GET  /pricing             - 价格页面
+GET  /create              - 创建项目（需登录）
+GET  /dashboard           - 用户仪表盘（需登录）
+GET  /results/[id]        - 项目结果（需登录）
 ```
 
-#### 模型配置管理
+### 管理员页面
 
-| 路由 | 文件位置 | 功能说明 |
-|------|---------|---------|
-| `/admin/model-configs` | `app/admin/model-configs/page.tsx` | AI 模型配置管理页面 |
-
-**功能特性：**
-- ✅ 查看所有模型配置列表
-- ✅ 创建新配置（支持图片生成和图片识别两种类型）
-- ✅ 编辑配置信息（API Base URL、API Key、模型名称）
-- ✅ 激活/停用配置（实时切换，无需重启）
-- ✅ 删除配置
-- ✅ 配置测试
-
-**配置类型：**
-- `image-generation`: 图片生成配置（用于生成婚纱照）
-- `identify-image`: 图片识别配置（用于人物检测）
-
-**动态配置原理：**
-系统会从数据库读取激活的配置，无需重启服务即可切换 AI 模型。
-
-### 🔌 API 路由
-
-#### 图片生成 API
-
-| 路由 | 文件位置 | 方法 | 功能说明 |
-|------|---------|------|---------|
-| `/api/generate-image` | `app/api/generate-image/route.ts` | POST | 标准图片生成 API |
-| `/api/generate-stream` | `app/api/generate-stream/route.ts` | POST | 流式图片生成 API（实时反馈） |
-
-**请求参数：**
-```typescript
-{
-  projectId: string;        // 项目 ID
-  templateId: string;       // 模板 ID
-  photoUrls: string[];      // 照片 URL 列表
-  prompt?: string;          // 自定义提示词（可选）
-}
+```
+GET  /admin/templates           - 模板管理（需管理员）
+GET  /admin/templates/new       - 创建模板（需管理员）
+GET  /admin/templates/[id]      - 编辑模板（需管理员）
+GET  /admin/model-configs       - 模型配置（需管理员）
 ```
 
-**响应格式：**
-```typescript
-// 标准模式
-{
-  success: true,
-  imageUrl: string;        // 生成的图片 URL
-  generationId: string;    // 生成记录 ID
-}
+### API 路由
 
-// 流式模式（Server-Sent Events）
-data: {"status":"generating","progress":0}
-data: {"status":"generating","progress":50}
-data: {"status":"completed","imageUrl":"..."}
 ```
+# 图片处理
+POST /api/generate-image        - 图片生成
+POST /api/identify-image        - 人物检测
+POST /api/upload-image          - 照片上传
 
-#### 图片识别 API
+# 用户功能
+GET  /api/templates             - 获取模板
+GET  /api/gallery               - 获取画廊作品
 
-| 路由 | 文件位置 | 方法 | 功能说明 |
-|------|---------|------|---------|
-| `/api/identify-image` | `app/api/identify-image/route.ts` | POST | 人物检测 API，验证照片是否包含人物 |
-
-**请求参数：**
-```typescript
-{
-  imageUrl: string;        // 图片 URL
-  imageBase64?: string;    // 或 Base64 编码的图片
-}
-```
-
-**响应格式：**
-```typescript
-{
-  hasPerson: boolean;      // 是否检测到人物
-  confidence: number;      // 置信度 (0-1)
-  message: string;         // 描述信息
-}
-```
-
-#### 图片上传 API
-
-| 路由 | 文件位置 | 方法 | 功能说明 |
-|------|---------|------|---------|
-| `/api/upload-image` | `app/api/upload-image/route.ts` | POST | 上传用户照片到 MinIO/Supabase Storage |
-
-**请求参数：**
-```typescript
-FormData {
-  file: File;              // 图片文件
-  projectId: string;       // 项目 ID
-}
-```
-
-**响应格式：**
-```typescript
-{
-  url: string;             // 上传后的图片 URL
-  filename: string;        // 文件名
-}
-```
-
-#### 模板 API
-
-| 路由 | 文件位置 | 方法 | 功能说明 |
-|------|---------|------|---------|
-| `/api/templates` | `app/api/templates/route.ts` | GET | 获取所有启用的模板（用户端） |
-
-**查询参数：**
-- `enabled`: 是否只返回启用的模板（默认 true）
-- `limit`: 返回数量限制
-- `offset`: 分页偏移
-
-#### 画廊 API
-
-| 路由 | 文件位置 | 方法 | 功能说明 |
-|------|---------|------|---------|
-| `/api/gallery` | `app/api/gallery/route.ts` | GET | 获取公开分享的作品列表 |
-
-**查询参数：**
-- `sort`: 排序方式（`latest` / `popular`）
-- `limit`: 返回数量
-- `offset`: 分页偏移
-
-#### 订单 API
-
-| 路由 | 文件位置 | 方法 | 功能说明 |
-|------|---------|------|---------|
-| `/api/orders/create` | `app/api/orders/create/route.ts` | POST | 创建订单 |
-| `/api/orders/validate` | `app/api/orders/validate/route.ts` | POST | 验证订单状态 |
-| `/api/orders/webhook/stripe` | `app/api/orders/webhook/stripe/route.ts` | POST | Stripe 支付回调 |
-| `/api/orders/mock/confirm` | `app/api/orders/mock/confirm/route.ts` | POST | 模拟支付确认（测试用） |
-
-#### 邀请 API
-
-| 路由 | 文件位置 | 方法 | 功能说明 |
-|------|---------|------|---------|
-| `/api/invite/claim` | `app/api/invite/claim/route.ts` | POST | 领取邀请奖励 |
-
-#### 图片交互 API
-
-| 路由 | 文件位置 | 方法 | 功能说明 |
-|------|---------|------|---------|
-| `/api/images/track-download` | `app/api/images/track-download/route.ts` | POST | 跟踪图片下载次数 |
-| `/api/generations/[id]/share` | `app/api/generations/[id]/share/route.ts` | POST/DELETE | 分享/取消分享作品到画廊 |
-
-### 🔐 管理员 API 路由
-
-所有管理员 API 都需要通过 `requireAdmin()` 进行权限验证。
-
-#### 模板管理 API
-
-| 路由 | 文件位置 | 方法 | 功能说明 |
-|------|---------|------|---------|
-| `/api/admin/templates` | `app/api/admin/templates/route.ts` | GET | 获取所有模板（包括禁用的） |
-| `/api/admin/templates` | `app/api/admin/templates/route.ts` | POST | 创建新模板 |
-| `/api/admin/templates/[id]` | `app/api/admin/templates/[id]/route.ts` | GET | 获取特定模板详情 |
-| `/api/admin/templates/[id]` | `app/api/admin/templates/[id]/route.ts` | PUT | 更新模板信息 |
-| `/api/admin/templates/[id]` | `app/api/admin/templates/[id]/route.ts` | DELETE | 删除模板 |
-
-**权限验证示例：**
-```typescript
-export async function GET(req: NextRequest) {
-  const result = await requireAdmin(req);
-  if (result instanceof Response) {
-    return result; // 返回 401/403 错误
-  }
-  const { profile } = result;
-  
-  // 继续处理请求...
-}
-```
-
-**请求头要求：**
-```
-Authorization: Bearer <supabase_access_token>
-```
-
-#### 模型配置 API
-
-| 路由 | 文件位置 | 方法 | 功能说明 |
-|------|---------|------|---------|
-| `/api/admin/model-configs` | `app/api/admin/model-configs/route.ts` | GET | 获取所有模型配置 |
-| `/api/admin/model-configs` | `app/api/admin/model-configs/route.ts` | POST | 创建新配置 |
-| `/api/admin/model-configs/[id]` | `app/api/admin/model-configs/[id]/route.ts` | PUT | 更新配置 |
-| `/api/admin/model-configs/[id]` | `app/api/admin/model-configs/[id]/route.ts` | DELETE | 删除配置 |
-
-**创建配置示例：**
-```typescript
-// POST /api/admin/model-configs
-{
-  name: "默认图片生成配置",
-  description: "使用 DALL-E 3 生成图片",
-  type: "image-generation",
-  api_base_url: "https://api.openai.com",
-  api_key: "sk-...",
-  model_name: "dall-e-3",
-  is_active: true
-}
-```
-
-#### 模板图片上传 API
-
-| 路由 | 文件位置 | 方法 | 功能说明 |
-|------|---------|------|---------|
-| `/api/admin/upload-template-image` | `app/api/admin/upload-template-image/route.ts` | POST | 上传模板预览图 |
-
-**请求格式：**
-```typescript
-FormData {
-  file: File;              // 图片文件
-  templateId?: string;     // 模板 ID（可选）
-}
-```
-
-#### 激活配置 API
-
-| 路由 | 文件位置 | 方法 | 功能说明 |
-|------|---------|------|---------|
-| `/api/model-configs/active` | `app/api/model-configs/active/route.ts` | GET | 获取当前激活的模型配置 |
-
-**查询参数：**
-- `type`: 配置类型（`image-generation` / `identify-image`）
-
-**响应格式：**
-```typescript
-{
-  id: string;
-  name: string;
-  type: string;
-  api_base_url: string;
-  api_key: string;         // 加密后的密钥
-  model_name: string;
-  is_active: true;
-}
-```
-
-### 🐛 调试 API 路由
-
-仅在开发环境可用，用于调试和测试。
-
-| 路由 | 文件位置 | 方法 | 功能说明 |
-|------|---------|------|---------|
-| `/api/debug/check-data` | `app/api/debug/check-data/route.ts` | GET | 检查数据库数据完整性 |
-| `/api/debug/gallery` | `app/api/debug/gallery/route.ts` | GET | 调试画廊数据 |
-| `/api/test-data` | `app/api/test-data/route.ts` | GET | 获取测试数据 |
-
-### 🔒 权限控制说明
-
-#### 用户端页面权限
-
-通过 `middleware.ts` 保护需要登录的页面：
-
-```typescript
-// middleware.ts
-export const config = {
-  matcher: ['/dashboard', '/results/:path*', '/create'],
-};
-```
-
-**注意：** 默认情况下中间件未启用（`ENABLE_SSR_GUARD !== 'true'`），权限控制主要在客户端通过 Supabase Auth 实现。
-
-#### 管理员权限验证
-
-**数据库层面：**
-```sql
--- profiles 表的 role 字段
-role TEXT DEFAULT 'user' CHECK (role IN ('user', 'admin'))
-```
-
-**服务端验证：**
-```typescript
-// lib/auth-admin.ts
-export async function verifyAdmin(req: NextRequest): Promise<Profile> {
-  // 1. 验证 JWT token
-  const token = authHeader?.split(' ')[1];
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  // 2. 查询用户 profile
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
-  
-  // 3. 检查 role
-  if (profile.role !== 'admin') {
-    throw new Error('Forbidden: Admin access required');
-  }
-  
-  return profile;
-}
-```
-
-**客户端验证：**
-```typescript
-// 在管理员页面组件中
-const { data: { session } } = await supabase.auth.getSession();
-if (!session) {
-  router.push('/');
-  return;
-}
-
-// 调用 API 时携带 token
-const response = await fetch('/api/admin/templates', {
-  headers: {
-    Authorization: `Bearer ${session.access_token}`,
-  },
-});
-
-if (response.status === 403) {
-  setError('访问被拒绝，需要管理员权限。');
-}
-```
-
-### 🔄 路由命名规范
-
-本项目遵循 Next.js 14 App Router 约定：
-
-- `page.tsx`: 页面组件
-- `route.ts`: API 路由处理器
-- `[id]`: 动态路由参数
-- `[...slug]`: 捕获所有路由
-
-**示例：**
-```
-/admin/templates/[id]/page.tsx  →  /admin/templates/123
-/api/admin/templates/[id]/route.ts  →  /api/admin/templates/123
-```
-
-
-```typescript
-// 在 route.ts 中指定
-export const runtime = 'edge';
+# 管理员 API（需 Authorization Header）
+GET    /api/admin/templates              - 管理模板
+POST   /api/admin/templates              - 创建模板
+PUT    /api/admin/templates/[id]         - 更新模板
+DELETE /api/admin/templates/[id]         - 删除模板
+GET    /api/admin/model-configs          - 管理配置
+POST   /api/admin/model-configs          - 创建配置
+PUT    /api/admin/model-configs/[id]     - 更新配置
 ```
 
 ---
@@ -1100,61 +314,41 @@ export const runtime = 'edge';
 ### 常用命令
 
 ```bash
-# 开发模式
+# 开发
 pnpm dev
 
-# 构建生产版本
+# 构建
 pnpm build
 
-# 启动生产服务器
+# 启动生产服务
 pnpm start
 
 # 代码检查
 pnpm lint
 
-# 类型检查
-pnpm typecheck
-
-# MinIO 相关
-pnpm fix-minio          # 修复 MinIO 403 错误
-pnpm fix-minio:policy   # 修复存储桶策略
-pnpm fix-minio:urls     # 刷新图片 URL
-
-# PM2 部署（生产环境）
-pnpm pm2:start          # 启动服务
-pnpm pm2:stop           # 停止服务
-pnpm pm2:restart        # 重启服务
+# PM2 部署
+pnpm pm2:start          # 启动
+pnpm pm2:stop           # 停止
+pnpm pm2:restart        # 重启
 pnpm pm2:logs           # 查看日志
 ```
 
 ### 代码规范
 
-- **TypeScript**: 严格模式，禁止使用 `any`
-- **组件**: 单个组件不超过 400 行，复杂组件需拆分
-- **样式**: 优先使用 Tailwind CSS，避免自定义 CSS
-- **命名**: 组件使用 PascalCase，Hooks 以 `use` 开头
-- **提交**: 遵循 Conventional Commits 规范
+- **TypeScript**: 严格模式，禁止 `any`
+- **组件**: 单个组件不超过 400 行
+- **样式**: 优先使用 Tailwind CSS
 
-### 环境变量说明
+### 环境变量
 
-#### 必填变量
-
-| 变量名 | 说明 | 示例 |
+| 变量名 | 说明 | 必填 |
 |--------|------|------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase 项目 URL | `https://xxx.supabase.co` |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 匿名密钥 | `eyJhbGc...` |
-| `IMAGE_API_KEY` | AI 图像生成 API 密钥 | `sk-...` |
-
-#### 可选变量
-
-| 变量名 | 说明 | 默认值 |
-|--------|------|--------|
-| `IMAGE_API_MODE` | API 模式 (`images` / `chat`) | `images` |
-| `IMAGE_API_BASE_URL` | API 基础 URL | `https://api.openai.com` |
-| `IMAGE_IMAGE_MODEL` | images 模式模型 | `dall-e-3` |
-| `IMAGE_CHAT_MODEL` | chat 模式模型 | `gpt-4o` |
-| `MINIO_ENDPOINT` | MinIO 端点 | `http://localhost:9000` |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase 项目 URL | ✅ |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 匿名密钥 | ✅ |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase 服务端密钥 | - |
+| `MINIO_ENDPOINT` | MinIO 端点 | - |
+| `MINIO_ACCESS_KEY` | MinIO 访问密钥 | - |
+| `MINIO_SECRET_KEY` | MinIO 密钥 | - |
 
 ---
 
@@ -1162,525 +356,93 @@ pnpm pm2:logs           # 查看日志
 
 ### 功能文档
 
-详细功能文档请查看 `docs/` 目录：
-
-- [模型配置管理](docs/MODEL_CONFIG_FEATURE.md) - 动态管理 AI 模型配置，无需重启服务
-- [图片识别功能](docs/IMAGE_IDENTIFICATION_FEATURE.md) - 基于 GPT-4o-mini 的人物检测与验证
-- [流式图片生成](docs/STREAMING_IMAGE_API.md) - 实时生成反馈，提升用户体验
-- [画廊分享功能](GALLERY_FEATURE_SUMMARY.md) - 作品分享、点赞、收藏系统
-- [单图生成功能](docs/GENERATE_SINGLE_FEATURE.md) - 快速生成单张婚纱照
-- [图片验证与上传](docs/IMAGE_VALIDATION_AND_UPLOAD.md) - 完整的图片处理流程
-
-### 配置文档
-
-- [MinIO 配置指南](docs/MINIO_403_FIX.md) - 对象存储配置与 403 错误修复
-- [API 配置优化](docs/API_CONFIG_OPTIMIZATION.md) - API 配置最佳实践
-- [提示词优化 V3](docs/prompt-optimization-v3-success-case.md) - 提高生成质量的提示词策略
-- [提示词优化 V2](docs/prompt-optimization-v2-demo-best-practices.md) - 提示词最佳实践
-- [人脸保留优化](docs/prompt-optimization-face-preservation.md) - 保持人物特征的技巧
+- [模型配置管理](docs/MODEL_CONFIG_FEATURE.md) - 动态配置 AI 模型
+- [图片识别功能](docs/IMAGE_IDENTIFICATION_FEATURE.md) - 人物检测与验证
+- [画廊分享功能](GALLERY_FEATURE_SUMMARY.md) - 作品分享系统
+- [提示词优化](docs/prompt-optimization-v3-success-case.md) - 提高生成质量
 
 ### 开发文档
 
-- [调试指南](docs/DEBUG_GUIDE.md) - 常见问题排查与解决
-- [轮询机制](docs/POLLING_MECHANISM.md) - 生成状态轮询实现
-- [结果页更新](docs/RESULTS_PAGE_UPDATE.md) - 结果页面功能说明
-- [CreatePage 优化](docs/CREATEPAGE_OPTIMIZATION.md) - 创建页面性能优化
-- [提示词列表优化](docs/PROMPT_LIST_OPTIMIZATION.md) - 提示词管理优化
-
----
-
-## 🎯 最佳实践
-
-### 照片上传建议
-
-为了获得最佳的生成效果，请遵循以下建议：
-
-**✅ 推荐的照片特征**
-- 📸 **清晰度**：照片清晰，无模糊
-- 💡 **光线**：光线充足，面部清晰可见
-- 👤 **人物**：人物居中，面部完整
-- 🎨 **背景**：背景简洁，不要过于复杂
-- 📏 **尺寸**：建议 1024x1024 或更高分辨率
-- 🎭 **表情**：自然的表情和姿势
-
-**❌ 避免的照片特征**
-- 🚫 模糊、失焦的照片
-- 🚫 光线过暗或过曝
-- 🚫 人物被遮挡或不完整
-- 🚫 背景过于杂乱
-- 🚫 多人合照（除非是情侣照）
-- 🚫 侧脸或背影照片
-
-
+- [调试指南](docs/DEBUG_GUIDE.md) - 问题排查
+- [MinIO 配置](docs/MINIO_403_FIX.md) - 对象存储配置
 
 ---
 
 ## 🔧 常见问题
 
-> 💡 **遇到问题？** 以下是常见问题解答。如果没有找到答案，欢迎[扫码添加微信](#-问题咨询与技术支持)直接咨询！
+### Q: 上传照片提示"未检测到人物"？
 
-### 用户端问题
+A: 确保照片中有清晰的人物面部，光线充足，不模糊。
 
-**Q: 上传照片后提示"未检测到人物"怎么办？**
+### Q: 如何切换 AI 模型？
 
-A: 请确保：
-1. 照片中有清晰的人物面部
-2. 光线充足，面部不被遮挡
-3. 照片质量良好，不模糊
-4. 如果是侧脸或背影，请更换正面照片
+A: 进入 `/admin/model-configs`，创建新配置并点击"激活"。
 
-💬 仍然有问题？[添加微信](#-问题咨询与技术支持)获取一对一帮助。
+### Q: MinIO 出现 403 错误？
 
-**Q: 生成的照片不满意怎么办？**
-
-A: 可以尝试：
-1. 更换更清晰的原始照片
-2. 选择不同的模板
-3. 多生成几次，选择最满意的
-4. [添加微信](#-问题咨询与技术支持)获取专业优化建议
-
-**Q: 积分不足怎么办？**
-
-A: 可以通过以下方式获取积分：
-1. 购买积分套餐
-2. 邀请好友注册（双方都获得积分）
-3. 参与平台活动获得奖励
-
-**Q: 生成时间过长怎么办？**
-
-A: 生成时间受多种因素影响：
-1. 正常情况下 2-5 分钟完成
-2. 高峰期可能需要更长时间
-3. 可以先关闭页面，稍后查看结果
-4. 系统会在生成完成后发送通知
-
-### 管理员问题
-
-**Q: 如何切换 AI 模型？**
-
-A: 
-1. 进入管理后台 → 模型配置管理
-2. 创建新的模型配置
-3. 点击"激活"按钮
-4. 系统立即切换，无需重启
-
-**Q: 如何优化提示词以提高生成质量？**
-
-A: 参考以下建议：
-1. 明确描述场景和风格
-2. 添加质量要求（如 "high quality", "8K resolution"）
-3. 包含光线和氛围描述
-4. 参考 [提示词优化文档](docs/prompt-optimization-v3-success-case.md)
-
-**Q: MinIO 出现 403 错误怎么办？**
-
-A: 
-1. 检查存储桶策略是否正确
-2. 运行修复脚本：`pnpm fix-minio`
-3. 参考 [MinIO 配置指南](docs/MINIO_403_FIX.md)
-
-**Q: 如何备份数据？**
-
-A: 
-1. 定期备份 Supabase 数据库
-2. 备份 MinIO 存储桶中的图片
-3. 导出重要配置信息
-4. 建议每周备份一次
-
-### 开发问题
-
-**Q: 本地开发时如何配置环境变量？**
-
-A: 
-1. 复制 `.env.example` 为 `.env`
-2. 填写必要的配置信息
-3. 确保 Supabase 和 AI API 配置正确
-4. 参考 [快速开始](#-快速开始) 章节
-
-💬 配置遇到困难？[添加微信](#-问题咨询与技术支持)获取详细指导。
-
-**Q: 如何调试 API 错误？**
-
-A: 
-1. 查看浏览器控制台的错误信息
-2. 检查 API 响应状态码和错误消息
-3. 查看服务器日志
-4. 参考 [调试指南](docs/DEBUG_GUIDE.md)
-
-💬 调试遇到问题？[添加微信](#-问题咨询与技术支持)一起排查解决。
-
-**Q: 如何添加新的模板？**
-
-A: 
-1. 准备模板预览图（建议 1024x1024）
-2. 编写合适的提示词
-3. 在管理后台创建新模板
-4. 测试生成效果后再启用
-
-**Q: 如何自定义 UI 样式？**
-
-A: 
-1. 优先使用 Tailwind CSS 类
-2. 自定义样式放在组件的 CSS 模块中
-3. 全局样式放在 `app/globals.css`
-4. 遵循项目的设计规范
+A: 运行 `pnpm fix-minio` 或参考 [MinIO 配置文档](docs/MINIO_403_FIX.md)。
 
 ---
 
 ## 🚢 部署
 
-> 💡 **部署遇到问题？** 欢迎[添加微信](#-问题咨询与技术支持)获取一对一部署指导！
-
 ### Vercel 部署（推荐）
 
-Vercel 是最简单的部署方式，支持自动构建和部署。
-
-**部署步骤：**
-
-1. **Fork 项目**
-   ```bash
-   # Fork 本项目到你的 GitHub 账号
-   ```
-
-2. **导入到 Vercel**
-   - 访问 [Vercel](https://vercel.com)
-   - 点击 "New Project"
-   - 选择你 Fork 的仓库
-   - 点击 "Import"
-
-3. **配置环境变量**
-   
-   在 Vercel 项目设置中添加以下环境变量：
-   
-   ```bash
-   # Supabase 配置
-   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-   
-   # AI 图像生成配置
-   IMAGE_API_MODE=chat
-   IMAGE_API_BASE_URL=https://api.openai.com
-   IMAGE_API_KEY=sk-your-api-key
-   IMAGE_CHAT_MODEL=gpt-4o
-   IMAGE_IMAGE_MODEL=dall-e-3
-   
-   # MinIO 配置（如果使用）
-   MINIO_ENDPOINT=https://your-minio-endpoint.com
-   MINIO_ACCESS_KEY=your-access-key
-   MINIO_SECRET_KEY=your-secret-key
-   MINIO_BUCKET_NAME=ai-images
-   MINIO_USE_SSL=true
-   ```
-
-4. **部署**
-   - 点击 "Deploy"
-   - 等待构建完成（约 2-3 分钟）
-   - 访问生成的域名
-
-5. **配置自定义域名（可选）**
-   - 在 Vercel 项目设置中添加自定义域名
-   - 配置 DNS 记录
-   - 等待 SSL 证书自动生成
-
-**Vercel 部署优势：**
-- ✅ 自动 CI/CD，推送代码自动部署
-- ✅ 全球 CDN 加速
-- ✅ 自动 HTTPS 证书
-- ✅ 免费额度充足
-- ✅ Edge Runtime 支持
+1. Fork 项目到 GitHub
+2. 在 Vercel 导入项目
+3. 配置环境变量
+4. 点击 Deploy
 
 ### 自托管部署
 
-使用 PM2 + Nginx 进行生产部署，适合需要完全控制的场景。
-
-**前置要求：**
-- Node.js 18+
-- PM2 (`npm install -g pm2`)
-- Nginx（可选，用于反向代理）
-
-**部署步骤：**
-
-1. **克隆代码**
 ```bash
-   git clone https://github.com/your-username/ai-wedding.git
-   cd ai-wedding
-   ```
-
-2. **安装依赖**
-   ```bash
-   pnpm install
-   ```
-
-3. **配置环境变量**
-   ```bash
-   cp .env.example .env
-   # 编辑 .env 文件，填写配置
-   ```
-
-4. **构建项目**
-   ```bash
+# 构建
 pnpm build
-   ```
 
-5. **启动服务**
-   ```bash
-   # 使用 PM2 启动
+# 使用 PM2 启动
 pnpm pm2:start
-
-# 查看状态
-pnpm pm2:status
-   
-   # 查看日志
-   pnpm pm2:logs
-   ```
-
-
-**PM2 常用命令：**
-```bash
-# 启动
-pnpm pm2:start
-
-# 停止
-pnpm pm2:stop
-
-# 重启
-pnpm pm2:restart
-
-# 查看日志
-pnpm pm2:logs
-
-# 查看状态
-pnpm pm2:status
-
-# 删除进程
-pnpm pm2:delete
 ```
 
-**自托管优势：**
-- ✅ 完全控制服务器
-- ✅ 可自定义配置
-- ✅ 无第三方依赖
-- ✅ 适合企业内网部署
-
-
-详细部署文档请参考 [DEPLOYMENT.md](DEPLOYMENT.md)。
+详见 [DEPLOYMENT.md](DEPLOYMENT.md)
 
 ---
 
 ## 📄 许可证
 
-本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件。
-
-**MIT 许可证要点：**
-- ✅ 可自由使用、修改、分发
-- ✅ 可用于商业项目
-- ✅ 需保留版权声明
-- ❌ 不提供任何担保
-
----
-
-
----
-
-## 🌟 项目统计
-
-<div align="center">
-
-![GitHub stars](https://img.shields.io/github/stars/your-username/ai-wedding?style=social)
-![GitHub forks](https://img.shields.io/github/forks/your-username/ai-wedding?style=social)
-![GitHub watchers](https://img.shields.io/github/watchers/your-username/ai-wedding?style=social)
-
-![GitHub issues](https://img.shields.io/github/issues/your-username/ai-wedding)
-![GitHub pull requests](https://img.shields.io/github/issues-pr/your-username/ai-wedding)
-![GitHub last commit](https://img.shields.io/github/last-commit/your-username/ai-wedding)
-![GitHub contributors](https://img.shields.io/github/contributors/your-username/ai-wedding)
-
-</div>
+MIT License - 可自由使用、修改、分发
 
 ---
 
 ## 📞 联系方式
 
-我们很乐意听到你的反馈和建议！
-
-### 💬 问题咨询与技术支持
-
-遇到问题？想要交流学习？扫描下方二维码添加微信：
-
 <div align="center">
 
 <img src="docs/wechat-qrcode.jpg" alt="微信二维码" width="300"/>
 
-**扫码添加微信好友**
-
+**扫码添加微信**
 
 </div>
 
-### 📧 其他联系方式
-
-- 🌐 **项目主页**: [GitHub](https://github.com/your-username/ai-wedding)
-- 🐛 **Bug 报告**: 在 [Issues](https://github.com/your-username/ai-wedding/issues) 提交问题
-- 💡 **功能建议**: 在 [Issues](https://github.com/your-username/ai-wedding/issues) 提出新功能
-- 💬 **讨论交流**: 在 [Discussions](https://github.com/your-username/ai-wedding/discussions) 参与讨论
-- 📖 **详细文档**: 查看 [docs/](docs/) 目录
-
-
-
-
-想要参与功能讨论？请访问 [Discussions](https://github.com/your-username/ai-wedding/discussions)。
+- 🐛 **Bug 报告**: [Issues](https://github.com/your-username/ai-wedding/issues)
+- 💡 **功能建议**: [Issues](https://github.com/your-username/ai-wedding/issues)
+- 💬 **讨论交流**: [Discussions](https://github.com/your-username/ai-wedding/discussions)
 
 ---
 
 ## 💖 支持项目
 
-如果这个项目对你有帮助，可以通过以下方式支持我们：
-
-### 免费支持
-- ⭐ 给项目一个 Star
-- 🔀 Fork 项目并贡献代码
-- 📢 分享项目给更多人
-- 📝 撰写使用教程或博客
-- 🐛 报告 Bug 和提出建议
-
-
-
-你的支持是我们持续改进的动力！
+- ⭐ Star 本项目
+- 🔀 Fork 并贡献代码
+- 📢 分享给更多人
 
 ---
 
 <div align="center">
 
-## ⭐ Star 历史
-
-[![Star History Chart](https://api.star-history.com/svg?repos=your-username/ai-wedding&type=Date)](https://star-history.com/#your-username/ai-wedding&Date)
-
----
-
-**如果这个项目对你有帮助，请给一个 ⭐️ Star 支持一下！**
+**如果这个项目对你有帮助，请给一个 ⭐️ Star！**
 
 Made with ❤️ by [AI Wedding Team](https://github.com/your-username)
-
-[⬆ 回到顶部](#ai-婚纱照生成平台-)
-
----
 
 Copyright © 2025 AI Wedding. All rights reserved.
 
 </div>
-
----
-
-## 📋 附录：路由快速参考
-
-### 用户端页面（公开访问）
-
-```
-GET  /                    - 首页
-GET  /templates           - 模板浏览
-GET  /gallery             - 作品画廊
-GET  /pricing             - 价格页面
-GET  /testimonials        - 用户评价
-```
-
-### 用户端页面（需要登录）
-
-```
-GET  /create              - 创建项目
-GET  /dashboard           - 用户仪表盘
-GET  /results/[id]        - 项目结果详情
-GET  /generate-single     - 快速生成单图
-```
-
-### 管理员页面（需要管理员权限）
-
-```
-GET  /admin/templates           - 模板管理列表
-GET  /admin/templates/new       - 创建新模板
-GET  /admin/templates/[id]      - 编辑模板
-GET  /admin/model-configs       - 模型配置管理
-```
-
-### 用户端 API
-
-```
-# 图片生成
-POST /api/generate-image        - 标准图片生成
-POST /api/generate-stream       - 流式图片生成
-
-# 图片处理
-POST /api/upload-image          - 上传照片
-POST /api/identify-image        - 人物检测
-
-# 模板和画廊
-GET  /api/templates             - 获取模板列表
-GET  /api/gallery               - 获取画廊作品
-
-# 用户互动
-POST /api/images/track-download           - 跟踪下载
-POST /api/generations/[id]/share          - 分享作品
-DELETE /api/generations/[id]/share        - 取消分享
-
-# 订单和支付
-POST /api/orders/create                   - 创建订单
-POST /api/orders/validate                 - 验证订单
-POST /api/orders/webhook/stripe           - Stripe 回调
-POST /api/orders/mock/confirm             - 模拟支付
-
-# 邀请系统
-POST /api/invite/claim                    - 领取邀请奖励
-```
-
-### 管理员 API（需要管理员权限 + Authorization Header）
-
-```
-# 模板管理
-GET    /api/admin/templates              - 获取所有模板
-POST   /api/admin/templates              - 创建模板
-GET    /api/admin/templates/[id]         - 获取模板详情
-PUT    /api/admin/templates/[id]         - 更新模板
-DELETE /api/admin/templates/[id]         - 删除模板
-POST   /api/admin/upload-template-image  - 上传模板图片
-
-# 模型配置管理
-GET    /api/admin/model-configs          - 获取所有配置
-POST   /api/admin/model-configs          - 创建配置
-PUT    /api/admin/model-configs/[id]     - 更新配置
-DELETE /api/admin/model-configs/[id]     - 删除配置
-GET    /api/model-configs/active         - 获取激活配置
-```
-
-### 调试 API（开发环境）
-
-```
-GET  /api/debug/check-data      - 检查数据完整性
-GET  /api/debug/gallery         - 调试画廊数据
-GET  /api/test-data             - 获取测试数据
-```
-
-### 如何访问管理员功能
-
-1. **设置管理员权限**（在数据库中）：
-   ```sql
-   UPDATE profiles 
-   SET role = 'admin' 
-   WHERE email = 'your-admin@example.com';
-   ```
-
-2. **访问管理员页面**：
-   - 登录后访问 `/admin/templates` 或 `/admin/model-configs`
-   - 系统会自动验证权限
-
-3. **调用管理员 API**：
-   ```typescript
-   const { data: { session } } = await supabase.auth.getSession();
-   
-   const response = await fetch('/api/admin/templates', {
-     headers: {
-       'Authorization': `Bearer ${session.access_token}`,
-       'Content-Type': 'application/json',
-     },
-   });
-   ```
-
----

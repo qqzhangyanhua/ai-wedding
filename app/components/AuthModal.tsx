@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Mail, Lock, User, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { Toast } from './Toast';
 
 interface AuthModalProps {
   onClose: () => void;
@@ -11,6 +12,7 @@ export function AuthModal({ onClose }: AuthModalProps) {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -25,10 +27,16 @@ export function AuthModal({ onClose }: AuthModalProps) {
     try {
       if (isLogin) {
         await signIn(formData.email, formData.password);
+        onClose();
       } else {
         await signUp(formData.email, formData.password, formData.fullName);
+        // 注册成功后显示提醒消息
+        setShowSuccessToast(true);
+        // 3秒后关闭弹窗
+        setTimeout(() => {
+          onClose();
+        }, 3000);
       }
-      onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : '发生错误');
     } finally {
@@ -37,8 +45,18 @@ export function AuthModal({ onClose }: AuthModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/50 backdrop-blur-sm">
-      <div className="relative w-full max-w-md bg-ivory rounded-xl shadow-2xl border border-stone/10">
+    <>
+      {showSuccessToast && (
+        <Toast
+          message="注册成功！请查看您的邮箱并点击确认链接来激活账号。"
+          type="success"
+          onClose={() => setShowSuccessToast(false)}
+          duration={3000}
+        />
+      )}
+      
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/50 backdrop-blur-sm">
+        <div className="relative w-full max-w-md bg-ivory rounded-xl shadow-2xl border border-stone/10">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-2 text-stone hover:text-navy rounded-md hover:bg-champagne transition-colors"
@@ -53,7 +71,7 @@ export function AuthModal({ onClose }: AuthModalProps) {
           <p className="text-stone mb-6">
             {isLogin ? '登录以访问您的项目' : '开始创作精美婚纱照'}
           </p>
-
+          <p className='text-stone text-sm text-center text-red-500'>只有配置了.com .cn 等顶级域名才能使用第三方登录,目前这个网站无法使用</p>
           {/* 第三方登录区域 */}
           <div className="space-y-3">
             <button
@@ -67,7 +85,7 @@ export function AuthModal({ onClose }: AuthModalProps) {
             >
               {/* 简单的 Google G 标识（避免引新依赖） */}
               <span className="inline-block w-5 h-5 rounded-full bg-gradient-to-br from-[#4285F4] via-[#EA4335] to-[#FBBC05]" />
-              使用 Google 登录
+              使用 Google 登录(暂时无效)
             </button>
           </div>
 
@@ -160,6 +178,7 @@ export function AuthModal({ onClose }: AuthModalProps) {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

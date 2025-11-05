@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { Profile } from '../types/database';
@@ -21,6 +21,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const loadingProfileRef = useRef(false);
+
+  const loadProfile = useCallback(async (userId: string) => {
+    // 防止重复加载
+    if (loadingProfileRef.current) {
+      return;
+    }
+
+    try {
+      loadingProfileRef.current = true;
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (data) {
+        setProfile(data as Profile);
+        // 若缺少邀请码则生成并补齐
+        if (!data.invite_code) {
+          const code = generateInviteCode();
+          const { data: updated, error: updErr } = await supabase
+            .from('profiles')
+            .update({ invite_code: code })
+            .eq('id', userId)
+            .select()
+            .single();
+          if (!updErr && updated) {
+            setProfile(updated as Profile);
+          } else if (updErr) {
+            console.error('更新邀请码失败:', updErr);
+          }
+        }
+      } else {
+        // 如果没有 profile，尝试创建一个
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData.user) {
+          const code = generateInviteCode();
+          const { data: newProfile, error } = await supabase
+            .from('profiles')
+            .insert({
+              id: userId,
+              email: userData.user.email || '',
+              full_name: userData.user.user_metadata?.full_name || '',
+              credits: 50,
+              invite_code: code,
+            })
+            .select()
+            .single();
+
+          if (!error && newProfile) {
+            setProfile(newProfile);
+          } else {
+            console.error('创建 profile 失败:', error);
+          }
+        }
+      }
+    } finally {
+      loadingProfileRef.current = false;
+    }
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -41,57 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
-
-  const loadProfile = async (userId: string) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (data) {
-      setProfile(data as Profile);
-      // 若缺少邀请码则生成并补齐
-      if (!data.invite_code) {
-        const code = generateInviteCode();
-        const { data: updated, error: updErr } = await supabase
-          .from('profiles')
-          .update({ invite_code: code })
-          .eq('id', userId)
-          .select()
-          .single();
-        if (!updErr && updated) {
-          setProfile(updated as Profile);
-        } else if (updErr) {
-          console.error('更新邀请码失败:', updErr);
-        }
-      }
-    } else {
-      // 如果没有 profile，尝试创建一个
-      const { data: userData } = await supabase.auth.getUser();
-      if (userData.user) {
-        const code = generateInviteCode();
-        const { data: newProfile, error } = await supabase
-          .from('profiles')
-          .insert({
-            id: userId,
-            email: userData.user.email || '',
-            full_name: userData.user.user_metadata?.full_name || '',
-            credits: 50,
-            invite_code: code,
-          })
-          .select()
-          .single();
-
-        if (!error && newProfile) {
-          setProfile(newProfile);
-        } else {
-          console.error('创建 profile 失败:', error);
-        }
-      }
-    }
-  };
+  }, [loadProfile]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -138,11 +149,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   };
 
-  const refreshProfile = async () => {
+  const refreshProfile = useCallback(async () => {
     if (user) {
       await loadProfile(user.id);
     }
-  };
+  }, [user, loadProfile]);
 
   const signInWithGoogle = async (redirectPath?: string) => {
     // 仅在浏览器环境下执行重定向

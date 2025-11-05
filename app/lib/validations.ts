@@ -54,6 +54,9 @@ export const GenerateImageSchema = z.object({
   image_inputs: z.array(z.string()).max(3).optional(),
   // 可选：模型来源
   source: z.enum(['openRouter', '302', 'openAi']).optional(),
+  // 可选：创意程度参数
+  temperature: z.number().min(0).max(2).default(0.2).optional(),
+  top_p: z.number().min(0).max(1).default(0.7).optional(),
 });
 
 /**

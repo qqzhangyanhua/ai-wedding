@@ -30,6 +30,11 @@ const nextConfig = {
         port: '9000',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'file.302.ai',
+        pathname: '/gpt/imgs/**',
+      },
     ],
     domains: ['localhost'],
   },

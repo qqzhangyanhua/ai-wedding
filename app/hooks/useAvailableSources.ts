@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { ModelConfigSource } from '@/types/model-config';
 
@@ -16,9 +16,16 @@ export function useAvailableSources(): UseAvailableSourcesResult {
   const [sources, setSources] = useState<ModelConfigSource[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const fetchingRef = useRef(false);
 
-  const fetchSources = async (): Promise<void> => {
+  const fetchSources = useCallback(async (): Promise<void> => {
+    // 防止重复请求
+    if (fetchingRef.current) {
+      return;
+    }
+
     try {
+      fetchingRef.current = true;
       setLoading(true);
       setError(null);
 
@@ -51,12 +58,13 @@ export function useAvailableSources(): UseAvailableSourcesResult {
       setSources([]);
     } finally {
       setLoading(false);
+      fetchingRef.current = false;
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchSources();
-  }, []);
+  }, [fetchSources]);
 
   return {
     sources,

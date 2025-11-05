@@ -243,13 +243,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { prompt, image_inputs, model, source } = validation.data;
-    console.log(`[${requestId}] ✅ 参数验证通过:`, {
-      prompt: prompt.substring(0, 100) + '...',
-      model: model || ENV_IMAGE_CHAT_MODEL,
-      source: source || 'default',
-      image_inputs_count: image_inputs?.length || 0,
-    });
+    const { prompt, image_inputs, model, source, temperature, top_p } = validation.data;
 
     // 6.5) 获取模型配置（优先从数据库，回退到环境变量）
     const dbConfig = await getActiveModelConfig(supabase, source);
@@ -274,6 +268,17 @@ export async function POST(req: Request) {
       IMAGE_CHAT_MODEL = ENV_IMAGE_CHAT_MODEL;
     }
 
+    // 打印参数验证结果（此时已知最终使用的模型）
+    console.log(`[${requestId}] ✅ 参数验证通过:`, {
+      prompt: prompt.substring(0, 100) + '...',
+      frontend_model: model || '(未指定)',
+      final_model: IMAGE_CHAT_MODEL, // 最终使用的模型（从配置获取）
+      source: source || 'default',
+      image_inputs_count: image_inputs?.length || 0,
+      temperature: temperature ?? 0.2,
+      top_p: top_p ?? 0.7,
+    });
+
     if (!IMAGE_API_KEY) {
       console.error(`[${requestId}] ❌ IMAGE_API_KEY 未配置`);
       // 退还积分
@@ -287,110 +292,412 @@ export async function POST(req: Request) {
       );
     }
 
-    // 7) 构建请求内容
-    type ChatContentItem =
-      | { type: 'text'; text: string }
-      | { type: 'image_url'; image_url: { url: string } };
-
+    // 7) 根据 source 决定请求格式
     const composedPrompt = composePrompt(prompt);
-    const chatContent: ChatContentItem[] = [{ type: 'text', text: composedPrompt }];
 
-    // 添加图片输入（最多3张）
-    if (Array.isArray(image_inputs)) {
-      const picked = image_inputs
-        .filter((s) =>
-          typeof s === 'string' &&
-          (s.startsWith('data:image/') || s.startsWith('http://') || s.startsWith('https://'))
-        )
-        .slice(0, 3);
-      console.log(`[${requestId}] 图片输入: ${picked.length} 张`);
+    // 检查是否为 302.ai（使用 Gemini 原生格式）
+    const is302AI = source === '302' || IMAGE_API_BASE_URL.includes('302.ai');
 
-      for (const url of picked) {
-        try {
-          const isDataUrl = url.startsWith('data:');
-          const urlType = isDataUrl ? 'Data URL' : url.startsWith('https://') ? 'HTTPS' : 'HTTP';
-          console.log(`[${requestId}]   - 图片类型: ${urlType}`);
+    if (is302AI) {
+      console.log(`[${requestId}] 🔄 使用 302.ai Gemini 原生格式`);
 
-          const base64Url = await convertUrlToBase64(url);
+      // 302.ai: 构建 Gemini 原生格式请求
+      type GeminiPart =
+        | { text: string }
+        | { inline_data: { mime_type: string; data: string } };
 
-          if (!isDataUrl) {
-            console.log(`[${requestId}]   - ✅ 已转换为 base64, 长度: ${base64Url.length} 字符`);
+      const parts: GeminiPart[] = [{ text: composedPrompt }];
+
+      // 添加图片（最多3张），使用 inline_data 格式
+      if (Array.isArray(image_inputs)) {
+        const picked = image_inputs
+          .filter((s) =>
+            typeof s === 'string' &&
+            (s.startsWith('data:image/') || s.startsWith('http://') || s.startsWith('https://'))
+          )
+          .slice(0, 3);
+        console.log(`[${requestId}] 图片输入: ${picked.length} 张`);
+
+        for (const url of picked) {
+          try {
+            let mimeType = 'image/jpeg';
+            let base64Data = url;
+
+            // 如果是 data URL，提取 MIME 类型和纯 base64
+            if (url.startsWith('data:')) {
+              const matches = url.match(/^data:([^;]+);base64,(.+)$/);
+              if (matches) {
+                mimeType = matches[1];
+                base64Data = matches[2];
+              }
+            } else {
+              // HTTP URL 需要先转换为 base64
+              const dataUrl = await convertUrlToBase64(url);
+              const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+              if (matches) {
+                mimeType = matches[1];
+                base64Data = matches[2];
+              }
+            }
+
+            console.log(`[${requestId}]   - 图片类型: ${mimeType}, base64 长度: ${base64Data.length}`);
+
+            parts.push({
+              inline_data: {
+                mime_type: mimeType,
+                data: base64Data,
+              },
+            });
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            console.error(`[${requestId}] ⚠️ 跳过图片（转换失败）: ${message}`);
           }
-
-          chatContent.push({ type: 'image_url', image_url: { url: base64Url } });
-        } catch (error) {
-          const message = error instanceof Error ? error.message : 'Unknown error';
-          console.error(`[${requestId}] ⚠️ 跳过图片（转换失败）: ${message}`);
         }
       }
-    } else {
-      console.log(`[${requestId}] 无图片输入`);
-    }
 
-    const requestData = {
-      model: model || IMAGE_CHAT_MODEL,
-      temperature: 0.2,
-      top_p: 0.7,
-      messages: [
-        {
-          role: 'user',
-          content: chatContent,
+      const requestData = {
+        contents: [
+          {
+            parts: parts,
+          },
+        ],
+        generationConfig: {
+          responseModalities: ['TEXT', 'IMAGE'],
         },
-      ],
-      stream: true,
-      stream_options: {
-        include_usage: true,
-      },
-    };
+      };
 
-    // 8) 调用上游 API
-    const endpoint = `${IMAGE_API_BASE_URL.replace(/\/$/, '')}/v1/chat/completions`;
-    console.log(`[${requestId}] 📤 调用上游 API: ${endpoint}`);
+      // 302.ai 的 endpoint 包含模型名称（不需要 :generateContent 后缀）
+      const endpoint = `${IMAGE_API_BASE_URL.replace(/\/$/, '')}/google/v1/models/${IMAGE_CHAT_MODEL}`;
+      console.log(`[${requestId}] 📤 调用 302.ai API: ${endpoint}`);
 
-    const fetchStartTime = Date.now();
-    const upstreamResponse = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${IMAGE_API_KEY}`,
-      },
-      body: JSON.stringify(requestData),
-    });
-    const fetchDuration = Date.now() - fetchStartTime;
+      // 打印请求详情（过滤掉 base64）
+      const logRequestData = {
+        ...requestData,
+        contents: requestData.contents.map(content => ({
+          parts: content.parts.map(part => {
+            if ('inline_data' in part) {
+              return {
+                inline_data: {
+                  mime_type: part.inline_data.mime_type,
+                  data: `<${part.inline_data.data.length} 字符已省略>`,
+                },
+              };
+            }
+            return part;
+          }),
+        })),
+      };
+      console.log(`[${requestId}] 📋 请求参数:`, JSON.stringify(logRequestData, null, 2));
 
-    console.log(`[${requestId}] 📥 收到上游响应: ${upstreamResponse.status} ${upstreamResponse.statusText} (耗时: ${fetchDuration}ms)`);
+      const fetchStartTime = Date.now();
+      const upstreamResponse = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${IMAGE_API_KEY}`,
+        },
+        body: JSON.stringify(requestData),
+      });
+      const fetchDuration = Date.now() - fetchStartTime;
 
-    if (!upstreamResponse.ok) {
-      const errorData = await upstreamResponse.text();
-      console.error(`[${requestId}] ❌ 上游 API 返回错误:`, {
-        status: upstreamResponse.status,
-        statusText: upstreamResponse.statusText,
-        error: errorData,
+      console.log(`[${requestId}] 📥 收到 302.ai 响应: ${upstreamResponse.status} ${upstreamResponse.statusText} (耗时: ${fetchDuration}ms)`);
+      console.log(`[${requestId}] 📋 响应头:`, {
+        'content-type': upstreamResponse.headers.get('content-type'),
+        'content-length': upstreamResponse.headers.get('content-length'),
+        'x-request-id': upstreamResponse.headers.get('x-request-id'),
       });
 
-      // 退还积分
-      console.log(`[${requestId}] 🔄 退还积分: ${CREDITS_PER_GENERATION}`);
-      await supabase
-        .from('profiles')
-        .update({ credits: profile.credits })
-        .eq('id', userId);
+      if (!upstreamResponse.ok) {
+        let errorData = await upstreamResponse.text();
 
-      return new Response(
-        JSON.stringify({ error: `API请求失败: ${upstreamResponse.status} ${errorData}` }),
-        { status: upstreamResponse.status, headers: { 'Content-Type': 'application/json' } }
-      );
+        // 尝试解析错误响应并过滤 base64
+        try {
+          const errorJson = JSON.parse(errorData);
+          // 递归过滤 base64 数据
+          const filterBase64 = (obj: any): any => {
+            if (typeof obj === 'string' && obj.length > 1000 && /^[A-Za-z0-9+/=]+$/.test(obj.substring(0, 100))) {
+              return `<可能是base64数据，长度: ${obj.length}>`;
+            }
+            if (Array.isArray(obj)) {
+              return obj.map(filterBase64);
+            }
+            if (obj && typeof obj === 'object') {
+              const filtered: any = {};
+              for (const key in obj) {
+                if (key === 'data' && typeof obj[key] === 'string' && obj[key].length > 1000) {
+                  filtered[key] = `<base64数据已省略，长度: ${obj[key].length}>`;
+                } else {
+                  filtered[key] = filterBase64(obj[key]);
+                }
+              }
+              return filtered;
+            }
+            return obj;
+          };
+
+          const filteredError = filterBase64(errorJson);
+          errorData = JSON.stringify(filteredError, null, 2);
+        } catch (e) {
+          // 如果不是 JSON，保持原样（但截断过长的内容）
+          if (errorData.length > 2000) {
+            errorData = errorData.substring(0, 2000) + '...(已截断)';
+          }
+        }
+
+        console.error(`[${requestId}] ❌ 302.ai API 返回错误:`, {
+          status: upstreamResponse.status,
+          statusText: upstreamResponse.statusText,
+          headers: Object.fromEntries(upstreamResponse.headers.entries()),
+          error: errorData,
+        });
+
+        // 退还积分
+        await supabase
+          .from('profiles')
+          .update({ credits: profile.credits })
+          .eq('id', userId);
+
+        return new Response(
+          JSON.stringify({ error: `API请求失败: ${upstreamResponse.status} ${errorData}` }),
+          { status: upstreamResponse.status, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // 302.ai 返回非流式 JSON
+      const responseData = await upstreamResponse.json();
+
+      // 打印响应数据（过滤 base64）
+      const filterBase64FromResponse = (obj: any): any => {
+        if (typeof obj === 'string' && obj.length > 1000 && /^[A-Za-z0-9+/=]+$/.test(obj.substring(0, 100))) {
+          return `<可能是base64数据，长度: ${obj.length}>`;
+        }
+        if (Array.isArray(obj)) {
+          return obj.map(filterBase64FromResponse);
+        }
+        if (obj && typeof obj === 'object') {
+          const filtered: any = {};
+          for (const key in obj) {
+            if ((key === 'data' || key === 'b64_json') && typeof obj[key] === 'string' && obj[key].length > 1000) {
+              filtered[key] = `<base64数据已省略，长度: ${obj[key].length}>`;
+            } else {
+              filtered[key] = filterBase64FromResponse(obj[key]);
+            }
+          }
+          return filtered;
+        }
+        return obj;
+      };
+
+      const logResponseData = filterBase64FromResponse(responseData);
+      console.log(`[${requestId}] ✅ 302.ai 响应解析成功:`, JSON.stringify(logResponseData, null, 2));
+
+      // 转换为 SSE 流式格式，兼容前端
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        start(controller) {
+          try {
+            // 提取图片数据
+            if (responseData.candidates && responseData.candidates.length > 0) {
+              const candidate = responseData.candidates[0];
+              if (candidate.content && candidate.content.parts) {
+                for (const part of candidate.content.parts) {
+                  // 处理文本数据
+                  if (part.text) {
+                    const chunk = JSON.stringify({
+                      choices: [{
+                        delta: {
+                          content: part.text,
+                        },
+                      }],
+                    });
+                    controller.enqueue(encoder.encode(`data: ${chunk}\n\n`));
+                  }
+
+                  // 处理 URL 格式的图片（302.ai 返回格式）
+                  if (part.url) {
+                    console.log(`[${requestId}] 📷 提取到图片 URL: ${part.url}`);
+                    // 将 URL 包装成 Markdown 格式，前端可以识别
+                    const chunk = JSON.stringify({
+                      choices: [{
+                        delta: {
+                          content: `![image](${part.url})`,
+                        },
+                      }],
+                    });
+                    controller.enqueue(encoder.encode(`data: ${chunk}\n\n`));
+                  }
+
+                  // 处理 Base64 格式的图片（inlineData 格式）
+                  if (part.inlineData && part.inlineData.data) {
+                    const mimeType = part.inlineData.mimeType || 'image/png';
+                    const base64Data = part.inlineData.data;
+                    const imageDataUrl = `data:${mimeType};base64,${base64Data}`;
+                    console.log(`[${requestId}] 📷 提取到 base64 图片，MIME: ${mimeType}, 长度: ${base64Data.length}`);
+
+                    // 模拟流式发送图片（Markdown 格式）
+                    const chunk = JSON.stringify({
+                      choices: [{
+                        delta: {
+                          content: `![image](${imageDataUrl})`,
+                        },
+                      }],
+                    });
+                    controller.enqueue(encoder.encode(`data: ${chunk}\n\n`));
+                  }
+                }
+              }
+            }
+
+            // 发送结束标记
+            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+            controller.close();
+            console.log(`[${requestId}] ✅ 流式转换完成`);
+          } catch (error) {
+            console.error(`[${requestId}] ❌ 流式转换失败:`, error);
+            controller.error(error);
+          }
+        },
+      });
+
+      return new Response(stream, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
+    } else {
+      // OpenRouter/其他: 使用 OpenAI 兼容格式
+      console.log(`[${requestId}] 🔄 使用 OpenAI 兼容格式`);
+
+      type ChatContentItem =
+        | { type: 'text'; text: string }
+        | { type: 'image_url'; image_url: { url: string } };
+
+      const chatContent: ChatContentItem[] = [{ type: 'text', text: composedPrompt }];
+
+      // 添加图片输入（最多3张）
+      if (Array.isArray(image_inputs)) {
+        const picked = image_inputs
+          .filter((s) =>
+            typeof s === 'string' &&
+            (s.startsWith('data:image/') || s.startsWith('http://') || s.startsWith('https://'))
+          )
+          .slice(0, 3);
+        console.log(`[${requestId}] 图片输入: ${picked.length} 张`);
+
+        for (const url of picked) {
+          try {
+            const isDataUrl = url.startsWith('data:');
+            const urlType = isDataUrl ? 'Data URL' : url.startsWith('https://') ? 'HTTPS' : 'HTTP';
+            console.log(`[${requestId}]   - 图片类型: ${urlType}`);
+
+            const base64Url = await convertUrlToBase64(url);
+
+            if (!isDataUrl) {
+              console.log(`[${requestId}]   - ✅ 已转换为 base64, 长度: ${base64Url.length} 字符`);
+            }
+
+            chatContent.push({ type: 'image_url', image_url: { url: base64Url } });
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            console.error(`[${requestId}] ⚠️ 跳过图片（转换失败）: ${message}`);
+          }
+        }
+      } else {
+        console.log(`[${requestId}] 无图片输入`);
+      }
+
+      const requestData = {
+        model: IMAGE_CHAT_MODEL,
+        temperature: temperature ?? 0.2,
+        top_p: top_p ?? 0.7,
+        messages: [
+          {
+            role: 'user',
+            content: chatContent,
+          },
+        ],
+        stream: true,
+        stream_options: {
+          include_usage: true,
+        },
+      };
+
+      const endpoint = `${IMAGE_API_BASE_URL.replace(/\/$/, '')}/v1/chat/completions`;
+      console.log(`[${requestId}] 📤 调用上游 API: ${endpoint}`);
+
+      // 打印请求详情（过滤掉 base64 图片数据）
+      const logRequestData = {
+        ...requestData,
+        messages: requestData.messages.map(msg => ({
+          ...msg,
+          content: Array.isArray(msg.content)
+            ? msg.content.map(item => {
+                if (item.type === 'image_url' && item.image_url?.url) {
+                  const url = item.image_url.url;
+                  const isBase64 = url.startsWith('data:image/');
+                  return {
+                    type: 'image_url',
+                    image_url: {
+                      url: isBase64
+                        ? `data:image/...;base64,<${url.length} 字符已省略>`
+                        : url
+                    }
+                  };
+                }
+                return item;
+              })
+            : msg.content
+        }))
+      };
+      console.log(`[${requestId}] 📋 请求参数:`, JSON.stringify(logRequestData, null, 2));
+
+      const fetchStartTime = Date.now();
+      const upstreamResponse = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${IMAGE_API_KEY}`,
+        },
+        body: JSON.stringify(requestData),
+      });
+      const fetchDuration = Date.now() - fetchStartTime;
+
+      console.log(`[${requestId}] 📥 收到上游响应: ${upstreamResponse.status} ${upstreamResponse.statusText} (耗时: ${fetchDuration}ms)`);
+
+      if (!upstreamResponse.ok) {
+        const errorData = await upstreamResponse.text();
+        console.error(`[${requestId}] ❌ 上游 API 返回错误:`, {
+          status: upstreamResponse.status,
+          statusText: upstreamResponse.statusText,
+          error: errorData,
+        });
+
+        // 退还积分
+        console.log(`[${requestId}] 🔄 退还积分: ${CREDITS_PER_GENERATION}`);
+        await supabase
+          .from('profiles')
+          .update({ credits: profile.credits })
+          .eq('id', userId);
+
+        return new Response(
+          JSON.stringify({ error: `API请求失败: ${upstreamResponse.status} ${errorData}` }),
+          { status: upstreamResponse.status, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log(`[${requestId}] ✅ 开始转发流式响应`);
+
+      // 直接转发流式响应
+      return new Response(upstreamResponse.body, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
     }
-
-    console.log(`[${requestId}] ✅ 开始转发流式响应`);
-
-    // 直接转发流式响应
-    return new Response(upstreamResponse.body, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      },
-    });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unexpected error';
     const stack = err instanceof Error ? err.stack : undefined;

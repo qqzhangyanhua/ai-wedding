@@ -3,6 +3,7 @@ import { Cormorant, Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 import HeaderBridge from './shared/HeaderBridge';
+import { AnnouncementBanner } from './components/AnnouncementBanner';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { GITHUB_REPO_URL } from '@/lib/constants';
 
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ProgressBar />
           <div className="min-h-screen bg-white">
             <HeaderBridge />
+            <AnnouncementBanner />
             {children}
             <footer className="bg-navy text-ivory py-12 mt-20 border-t border-stone/10">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

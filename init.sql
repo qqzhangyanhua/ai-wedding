@@ -123,6 +123,15 @@ CREATE TABLE public.projects (
   CONSTRAINT projects_pkey PRIMARY KEY (id),
   CONSTRAINT projects_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
 );
+CREATE TABLE public.system_announcements (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  content text NOT NULL,
+  is_active boolean DEFAULT false,
+  published_at timestamp with time zone DEFAULT now(),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT system_announcements_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.templates (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   name text NOT NULL,

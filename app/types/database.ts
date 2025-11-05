@@ -138,3 +138,13 @@ export interface GalleryItem {
   user_name: string;
   created_at: string;
 }
+
+// 系统公告类型定义
+export interface SystemAnnouncement {
+  id: string;
+  content: string;
+  is_active: boolean;
+  published_at: string;
+  created_at: string;
+  updated_at: string;
+}

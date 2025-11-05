@@ -55,41 +55,38 @@ export function AuthModal({ onClose }: AuthModalProps) {
         />
       )}
       
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/50 backdrop-blur-sm">
-        <div className="relative w-full max-w-md bg-ivory rounded-xl shadow-2xl border border-stone/10">
+      <div className="flex fixed inset-0 z-50 justify-center items-center p-4 backdrop-blur-sm bg-navy/50">
+        <div className="relative w-full max-w-md rounded-xl border shadow-2xl bg-ivory border-stone/10">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-stone hover:text-navy rounded-md hover:bg-champagne transition-colors"
+          className="absolute top-4 right-4 p-2 rounded-md transition-colors text-stone hover:text-navy hover:bg-champagne"
         >
           <X className="w-5 h-5" />
         </button>
 
         <div className="p-8">
-          <h2 className="text-3xl font-display font-medium text-navy mb-2">
+          <h2 className="mb-2 text-3xl font-medium font-display text-navy">
             {isLogin ? '欢迎回来' : '创建账号'}
           </h2>
-          <p className="text-stone mb-6">
+          <p className="mb-6 text-stone">
             {isLogin ? '登录以访问您的项目' : '开始创作精美婚纱照'}
           </p>
-          <p className='text-stone text-sm text-center text-red-500'>只有配置了.com .cn 等顶级域名才能使用第三方登录,目前这个网站无法使用</p>
           {/* 第三方登录区域 */}
           <div className="space-y-3">
-            <button
+            {/* <button
               onClick={() => {
                 setError('');
-                // 使用 Google 登录，回跳到当前页面
                 signInWithGoogle().catch((e) => setError(e?.message || '跳转到 Google 登录失败'));
               }}
-              className="w-full py-3 bg-white text-navy border border-stone/20 rounded-md hover:bg-champagne transition-all duration-300 font-medium shadow-sm hover:shadow-md flex items-center justify-center gap-2"
+              className="flex gap-2 justify-center items-center py-3 w-full font-medium bg-white rounded-md border shadow-sm transition-all duration-300 text-navy border-stone/20 hover:bg-champagne hover:shadow-md"
               type="button"
             >
-              {/* 简单的 Google G 标识（避免引新依赖） */}
               <span className="inline-block w-5 h-5 rounded-full bg-gradient-to-br from-[#4285F4] via-[#EA4335] to-[#FBBC05]" />
               使用 Google 登录(暂时无效)
-            </button>
+            </button> */}
           </div>
 
-          <div className="my-6 flex items-center gap-4">
+          <div className="flex gap-4 items-center my-6">
             <div className="flex-1 h-px bg-stone/20" />
             <span className="text-xs text-stone">或使用邮箱{isLogin ? '登录' : '注册'}</span>
             <div className="flex-1 h-px bg-stone/20" />
@@ -98,14 +95,14 @@ export function AuthModal({ onClose }: AuthModalProps) {
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
               <div>
-                <label className="block text-sm font-medium text-navy mb-2">姓名</label>
+                <label className="block mb-2 text-sm font-medium text-navy">姓名</label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone" />
+                  <User className="absolute left-3 top-1/2 w-5 h-5 -translate-y-1/2 text-stone" />
                   <input
                     type="text"
                     value={formData.fullName}
                     onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                    className="w-full pl-11 pr-4 py-3 border border-stone/20 bg-champagne rounded-md focus:ring-2 focus:ring-dusty-rose/30 focus:border-dusty-rose transition-all"
+                    className="py-3 pr-4 pl-11 w-full rounded-md border transition-all border-stone/20 bg-champagne focus:ring-2 focus:ring-dusty-rose/30 focus:border-dusty-rose"
                     placeholder="请输入您的姓名"
                     required={!isLogin}
                   />
@@ -114,14 +111,14 @@ export function AuthModal({ onClose }: AuthModalProps) {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-navy mb-2">邮箱</label>
+              <label className="block mb-2 text-sm font-medium text-navy">邮箱</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone" />
+                <Mail className="absolute left-3 top-1/2 w-5 h-5 -translate-y-1/2 text-stone" />
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full pl-11 pr-4 py-3 border border-stone/20 bg-champagne rounded-md focus:ring-2 focus:ring-dusty-rose/30 focus:border-dusty-rose transition-all"
+                  className="py-3 pr-4 pl-11 w-full rounded-md border transition-all border-stone/20 bg-champagne focus:ring-2 focus:ring-dusty-rose/30 focus:border-dusty-rose"
                   placeholder="请输入邮箱"
                   required
                 />
@@ -129,14 +126,14 @@ export function AuthModal({ onClose }: AuthModalProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-navy mb-2">密码</label>
+              <label className="block mb-2 text-sm font-medium text-navy">密码</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone" />
+                <Lock className="absolute left-3 top-1/2 w-5 h-5 -translate-y-1/2 text-stone" />
                 <input
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full pl-11 pr-4 py-3 border border-stone/20 bg-champagne rounded-md focus:ring-2 focus:ring-dusty-rose/30 focus:border-dusty-rose transition-all"
+                  className="py-3 pr-4 pl-11 w-full rounded-md border transition-all border-stone/20 bg-champagne focus:ring-2 focus:ring-dusty-rose/30 focus:border-dusty-rose"
                   placeholder="请输入密码"
                   required
                 />
@@ -144,7 +141,7 @@ export function AuthModal({ onClose }: AuthModalProps) {
             </div>
 
             {error && (
-              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+              <div className="p-3 rounded-md border bg-destructive/10 border-destructive/20">
                 <p className="text-sm text-destructive">{error}</p>
               </div>
             )}
@@ -152,7 +149,7 @@ export function AuthModal({ onClose }: AuthModalProps) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-navy text-ivory rounded-md hover:bg-navy/90 transition-all duration-300 font-medium shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex gap-2 justify-center items-center py-3 w-full font-medium rounded-md shadow-md transition-all duration-300 bg-navy text-ivory hover:bg-navy/90 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
@@ -171,7 +168,7 @@ export function AuthModal({ onClose }: AuthModalProps) {
                 setIsLogin(!isLogin);
                 setError('');
               }}
-              className="text-sm text-dusty-rose hover:text-dusty-rose/80 font-medium transition-colors"
+              className="text-sm font-medium transition-colors text-dusty-rose hover:text-dusty-rose/80"
             >
               {isLogin ? '没有账号？注册' : '已有账号？登录'}
             </button>

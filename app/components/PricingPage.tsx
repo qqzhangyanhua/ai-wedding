@@ -117,27 +117,57 @@ export function PricingPage({ onNavigate }: PricingPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-champagne via-ivory to-blush py-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="py-16 min-h-screen bg-gradient-to-b from-champagne via-ivory to-blush">
+      <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
         {/* Header */}
         <FadeIn delay={0.1}>
-          <div className="text-center mb-16">
+          {/* Notice Banner */}
+          <div className="mb-12 mx-auto max-w-3xl">
+            <div className="p-6 bg-red-50 border-2 border-red-200 rounded-xl shadow-sm">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-red-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="mb-3 text-lg font-semibold text-red-900">
+                    暂无在线支付功能
+                  </h3>
+                  <ul className="space-y-2 text-sm text-red-800">
+                    <li className="flex items-start gap-2">
+                      <span className="text-red-600 mt-0.5">•</span>
+                      <span>新用户注册即可获得免费积分</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-red-600 mt-0.5">•</span>
+                      <span>需要更多积分?联系我们人工充值</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-red-600 mt-0.5">•</span>
+                      <span className="font-medium">微信: ZYH11ZYH</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-16 text-center">
             <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-champagne border border-rose-gold/20 text-navy rounded-full text-sm font-medium tracking-wide shadow-sm mb-6">
               <Sparkles className="w-4 h-4 text-rose-gold" />
               简单透明的定价
             </div>
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-medium text-navy mb-4">
+            <h1 className="mb-4 text-4xl font-medium sm:text-5xl md:text-6xl font-display text-navy">
               选择您完美的
               <span className="text-dusty-rose"> 套餐</span>
             </h1>
-            <p className="text-xl text-stone max-w-2xl mx-auto leading-relaxed">
+            <p className="mx-auto max-w-2xl text-xl leading-relaxed text-stone">
               免费获得50积分开始。随时升级以获得更多生成次数和高级功能。
             </p>
           </div>
         </FadeIn>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+        <div className="grid grid-cols-1 gap-8 mb-16 md:grid-cols-3">
           {plans.map((plan, index) => (
             <FadeIn key={index} delay={0.2 + index * 0.1}>
               <div
@@ -152,32 +182,32 @@ export function PricingPage({ onNavigate }: PricingPageProps) {
                 )}
 
                 <div className={`p-8 ${plan.popular ? 'pt-14' : ''}`}>
-                  <div className="w-14 h-14 bg-gradient-to-br from-rose-gold/20 to-dusty-rose/20 border border-rose-gold/20 rounded-xl flex items-center justify-center mb-6">
+                  <div className="flex justify-center items-center mb-6 w-14 h-14 bg-gradient-to-br rounded-xl border from-rose-gold/20 to-dusty-rose/20 border-rose-gold/20">
                     <plan.icon className="w-7 h-7 text-dusty-rose" />
                   </div>
 
-                  <h3 className="text-2xl font-display font-medium text-navy mb-2">{plan.name}</h3>
-                  <div className="flex items-baseline gap-2 mb-6">
-                    <span className="text-5xl font-display font-semibold text-navy">${plan.price}</span>
+                  <h3 className="mb-2 text-2xl font-medium font-display text-navy">{plan.name}</h3>
+                  <div className="flex gap-2 items-baseline mb-6">
+                    <span className="text-5xl font-semibold font-display text-navy">${plan.price}</span>
                     <span className="text-stone">一次性付费</span>
                   </div>
 
-                  <div className="mb-6 px-4 py-3 bg-gradient-to-r from-champagne to-blush rounded-lg border border-rose-gold/10">
-                    <div className="flex items-center justify-between">
-                      <span className="text-navy font-medium">生成积分</span>
-                      <span className="text-2xl font-display font-semibold text-dusty-rose">
+                  <div className="px-4 py-3 mb-6 bg-gradient-to-r rounded-lg border from-champagne to-blush border-rose-gold/10">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-navy">生成积分</span>
+                      <span className="text-2xl font-semibold font-display text-dusty-rose">
                         {plan.credits}
                       </span>
                     </div>
                   </div>
 
-                  <ul className="space-y-4 mb-8">
+                  <ul className="mb-8 space-y-4">
                     {plan.features.map((feature, i) => (
-                      <li key={i} className="flex items-start gap-3">
+                      <li key={i} className="flex gap-3 items-start">
                         <div className="w-5 h-5 rounded-full bg-rose-gold/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                           <Check className="w-3 h-3 text-rose-gold" />
                         </div>
-                        <span className="text-stone leading-relaxed">{feature}</span>
+                        <span className="leading-relaxed text-stone">{feature}</span>
                       </li>
                     ))}
                   </ul>
@@ -201,15 +231,15 @@ export function PricingPage({ onNavigate }: PricingPageProps) {
 
         {/* 对比表格 */}
         <FadeIn delay={0.5}>
-          <GlassCard className="mb-16 overflow-x-auto">
+          <GlassCard className="overflow-x-auto mb-16">
             <div className="p-6">
-              <h2 className="text-2xl font-display font-medium text-navy mb-4">功能对比</h2>
-              <table className="min-w-full text-left text-sm">
+              <h2 className="mb-4 text-2xl font-medium font-display text-navy">功能对比</h2>
+              <table className="min-w-full text-sm text-left">
                 <thead>
                   <tr>
                     <th className="py-3 pr-4 text-stone">功能</th>
                     {plans.map((p, i) => (
-                      <th key={i} className="py-3 px-4 text-navy font-medium">{p.name}</th>
+                      <th key={i} className="px-4 py-3 font-medium text-navy">{p.name}</th>
                     ))}
                   </tr>
                 </thead>
@@ -224,9 +254,9 @@ export function PricingPage({ onNavigate }: PricingPageProps) {
                     { k: 'API/白牌', v: ['-', '可选', '包含'] },
                   ].map((row, rIdx) => (
                     <tr key={rIdx}>
-                      <td className="py-3 pr-4 text-stone whitespace-nowrap">{row.k}</td>
+                      <td className="py-3 pr-4 whitespace-nowrap text-stone">{row.k}</td>
                       {row.v.map((vv, cIdx) => (
-                        <td key={cIdx} className="py-3 px-4 text-navy whitespace-nowrap">
+                        <td key={cIdx} className="px-4 py-3 whitespace-nowrap text-navy">
                           {vv === '-' ? (
                             <span className="text-stone">—</span>
                           ) : (
@@ -244,10 +274,10 @@ export function PricingPage({ onNavigate }: PricingPageProps) {
 
         {/* FAQ Section */}
         <FadeIn delay={0.6}>
-          <GlassCard className="max-w-4xl mx-auto">
+          <GlassCard className="mx-auto max-w-4xl">
             <div className="p-8 md:p-12">
-              <div className="text-center mb-8">
-                <h2 className="text-3xl font-display font-medium text-navy mb-4">常见问题</h2>
+              <div className="mb-8 text-center">
+                <h2 className="mb-4 text-3xl font-medium font-display text-navy">常见问题</h2>
                 <p className="text-stone">了解更多关于我们的定价和服务</p>
               </div>
 
@@ -270,9 +300,9 @@ export function PricingPage({ onNavigate }: PricingPageProps) {
                     a: '当然！随时升级，您现有的积分将被保留。'
                   }
                 ].map((faq, i) => (
-                  <div key={i} className="bg-ivory/50 backdrop-blur-sm rounded-lg p-6 border border-stone/10 hover:border-rose-gold/20 transition-colors">
-                    <h3 className="font-display font-medium text-navy mb-2">{faq.q}</h3>
-                    <p className="text-stone leading-relaxed">{faq.a}</p>
+                  <div key={i} className="p-6 rounded-lg border backdrop-blur-sm transition-colors bg-ivory/50 border-stone/10 hover:border-rose-gold/20">
+                    <h3 className="mb-2 font-medium font-display text-navy">{faq.q}</h3>
+                    <p className="leading-relaxed text-stone">{faq.a}</p>
                   </div>
                 ))}
               </div>

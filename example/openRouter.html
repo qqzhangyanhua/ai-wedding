@@ -302,6 +302,116 @@
         box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
       }
 
+      /* 模板选择样式 */
+      .template-section {
+        grid-column: 1 / -1;
+        background: #f8f9fa;
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 30px;
+      }
+
+      .template-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+      }
+
+      .template-card {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 3px solid transparent;
+      }
+
+      .template-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.2);
+      }
+
+      .template-card.selected {
+        border-color: #667eea;
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+      }
+
+      .template-preview {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        background: #f0f0f0;
+      }
+
+      .template-info {
+        padding: 12px;
+        text-align: center;
+      }
+
+      .template-name {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 5px;
+      }
+
+      .template-category {
+        font-size: 0.75rem;
+        color: #999;
+        text-transform: uppercase;
+      }
+
+      .prompt-list-section {
+        margin-top: 15px;
+        padding: 15px;
+        background: #fff;
+        border-radius: 10px;
+        display: none;
+      }
+
+      .prompt-list-section.show {
+        display: block;
+      }
+
+      .prompt-item {
+        padding: 12px;
+        margin-bottom: 10px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 2px solid transparent;
+        font-size: 0.85rem;
+        line-height: 1.5;
+        color: #555;
+      }
+
+      .prompt-item:hover {
+        background: #e9ecef;
+        border-color: #667eea;
+      }
+
+      .prompt-item.selected {
+        background: #e3e8ff;
+        border-color: #667eea;
+        color: #333;
+      }
+
+      .prompt-item-number {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        line-height: 24px;
+        text-align: center;
+        background: #667eea;
+        color: white;
+        border-radius: 50%;
+        font-size: 0.75rem;
+        font-weight: bold;
+        margin-right: 8px;
+      }
+
       @media (max-width: 768px) {
         .demo-grid {
           grid-template-columns: 1fr;
@@ -314,10 +424,17 @@
         .container {
           padding: 20px;
         }
+
+        .template-grid {
+          grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        }
       }
     </style>
   </head>
   <body>
+    <!-- 引入模板数据 -->
+    <script src="template-data.js"></script>
+    
     <div class="container">
       <div class="header">
         <h1>🎨 AI图片编辑Demo</h1>
@@ -325,6 +442,24 @@
       </div>
 
       <div class="demo-grid">
+        <!-- 模板选择区域 -->
+        <div class="template-section">
+          <div class="section-title">🎨 选择婚纱照风格模板（可选）</div>
+          <div class="template-grid" id="templateGrid">
+            <div style="padding: 40px; text-align: center; grid-column: 1 / -1; color: #999;">
+              <div class="spinner"></div>
+              <div style="margin-top: 15px;">加载模板中...</div>
+            </div>
+          </div>
+          <!-- 提示词列表 -->
+          <div class="prompt-list-section" id="promptListSection">
+            <div style="font-weight: 600; color: #333; margin-bottom: 12px; font-size: 1rem;">
+              📝 选择提示词（点击即可使用）
+            </div>
+            <div id="promptList"></div>
+          </div>
+        </div>
+
         <!-- 上传区域 -->
         <div class="upload-section">
           <div class="section-title">📸 上传原图</div>
@@ -356,7 +491,8 @@
           </div>
           <div class="loading" id="loading">
             <div class="spinner"></div>
-            <div>AI正在分析图片，流式生成中...</div>
+            <div id="loadingText">AI正在分析图片，流式生成中...</div>
+            <div id="processingInfo" style="margin-top: 10px; font-size: 0.9rem; color: #999;"></div>
           </div>
         </div>
 
@@ -406,8 +542,12 @@
         constructor() {
           this.originalImage = null;
           this.originalImageData = null;
+          this.templates = [];
+          this.selectedTemplate = null;
+          this.selectedPrompt = null;
           this.initializeElements();
           this.bindEvents();
+          this.loadTemplates();
         }
 
         initializeElements() {
@@ -426,6 +566,9 @@
           this.successMessage = document.getElementById("successMessage");
           this.facePreservation = document.getElementById("facePreservation");
           this.creativityLevel = document.getElementById("creativityLevel");
+          this.templateGrid = document.getElementById("templateGrid");
+          this.promptListSection = document.getElementById("promptListSection");
+          this.promptList = document.getElementById("promptList");
         }
 
         bindEvents() {
@@ -453,6 +596,133 @@
           this.generateBtn.addEventListener("click", () =>
             this.generateImage()
           );
+        }
+
+        loadTemplates() {
+          try {
+            // 从全局变量读取模板数据
+            this.templates = window.TEMPLATE_DATA || [];
+            
+            if (this.templates.length === 0) {
+              throw new Error('模板数据为空');
+            }
+            
+            this.renderTemplates();
+          } catch (error) {
+            console.error('加载模板失败:', error);
+            this.templateGrid.innerHTML = `
+              <div style="padding: 40px; text-align: center; grid-column: 1 / -1; color: #c33;">
+                <div style="font-size: 2rem; margin-bottom: 10px;">❌</div>
+                <div>加载模板失败，请刷新页面重试</div>
+              </div>
+            `;
+          }
+        }
+
+        renderTemplates() {
+          if (this.templates.length === 0) {
+            this.templateGrid.innerHTML = `
+              <div style="padding: 40px; text-align: center; grid-column: 1 / -1; color: #999;">
+                <div style="font-size: 2rem; margin-bottom: 10px;">📭</div>
+                <div>暂无模板</div>
+              </div>
+            `;
+            return;
+          }
+
+          this.templateGrid.innerHTML = this.templates.map((template, index) => `
+            <div class="template-card" data-template-id="${template.id}" data-index="${index}">
+              <img src="${template.preview_image_url}" alt="${template.name}" class="template-preview" 
+                   onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22200%22 height=%22200%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3E暂无图片%3C/text%3E%3C/svg%3E'">
+              <div class="template-info">
+                <div class="template-name">${template.name}</div>
+                <div class="template-category">${this.getCategoryName(template.category)}</div>
+              </div>
+            </div>
+          `).join('');
+
+          // 绑定点击事件
+          this.templateGrid.querySelectorAll('.template-card').forEach(card => {
+            card.addEventListener('click', () => {
+              const templateId = card.dataset.templateId;
+              const index = parseInt(card.dataset.index);
+              this.selectTemplate(templateId, index);
+            });
+          });
+        }
+
+        getCategoryName(category) {
+          const categoryMap = {
+            'classic': '经典',
+            'artistic': '艺术',
+            'location': '外景',
+            'fantasy': '创意'
+          };
+          return categoryMap[category] || category;
+        }
+
+        selectTemplate(templateId, index) {
+          // 更新选中状态
+          this.templateGrid.querySelectorAll('.template-card').forEach(card => {
+            card.classList.remove('selected');
+          });
+          this.templateGrid.querySelector(`[data-template-id="${templateId}"]`).classList.add('selected');
+
+          // 保存选中的模板
+          this.selectedTemplate = this.templates[index];
+          
+          // 显示提示词列表
+          this.renderPromptList();
+          this.promptListSection.classList.add('show');
+        }
+
+        renderPromptList() {
+          if (!this.selectedTemplate || !this.selectedTemplate.prompt_list || this.selectedTemplate.prompt_list.length === 0) {
+            this.promptList.innerHTML = `
+              <div style="padding: 20px; text-align: center; color: #999;">
+                该模板暂无提示词
+              </div>
+            `;
+            return;
+          }
+
+          this.promptList.innerHTML = this.selectedTemplate.prompt_list.map((prompt, index) => `
+            <div class="prompt-item" data-prompt-index="${index}">
+              <span class="prompt-item-number">${index + 1}</span>
+              ${prompt}
+            </div>
+          `).join('');
+
+          // 绑定点击事件
+          this.promptList.querySelectorAll('.prompt-item').forEach(item => {
+            item.addEventListener('click', () => {
+              const promptIndex = parseInt(item.dataset.promptIndex);
+              this.selectPrompt(promptIndex);
+            });
+          });
+        }
+
+        selectPrompt(index) {
+          // 更新选中状态
+          this.promptList.querySelectorAll('.prompt-item').forEach(item => {
+            item.classList.remove('selected');
+          });
+          this.promptList.querySelector(`[data-prompt-index="${index}"]`).classList.add('selected');
+
+          // 将提示词填入输入框
+          this.selectedPrompt = this.selectedTemplate.prompt_list[index];
+          this.promptInput.value = this.selectedPrompt;
+          
+          // 验证表单
+          this.validateForm();
+          
+          // 显示成功消息
+          this.showSuccess('已选择提示词，您可以直接使用或进行修改');
+          
+          // 自动滚动到提示词输入区域
+          setTimeout(() => {
+            this.promptInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 300);
         }
 
         handleDragOver(e) {
@@ -619,7 +889,7 @@ Please focus your modifications ONLY on the user's specific requirements while s
             }
 
             const requestData = {
-              model: "jimeng-nano-banana",
+              model: "google/gemini-2.5-flash-image",
               temperature: temperature, // 根据创意程度动态调整
               top_p: topP, // 根据创意程度动态调整
               messages: [
@@ -647,13 +917,13 @@ Please focus your modifications ONLY on the user's specific requirements while s
 
             // 调用API
             const response = await fetch(
-              "https://api.fuio.tech/v1/chat/completions",
+              "https://openrouter.ai/api/v1/chat/completions",
               {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
                   Authorization:
-                    "Bearer sk-JdGshoRJVioK0c9JpUqhhG446nS1NDh9FdoamBIYAkr4F8a6",
+                    "Bearer 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",
                 },
                 body: JSON.stringify(requestData),
               }
@@ -671,6 +941,7 @@ Please focus your modifications ONLY on the user's specific requirements while s
             let content = ""; // 聚合文本内容（包括 markdown 图片）
             let isStreamComplete = false; // 标记是否停止
             let sseBuffer = ""; // 跨 chunk 的缓冲区
+            let processingCount = 0; // 记录 PROCESSING 出现次数
 
             while (true) {
               const { done, value } = await reader.read();
@@ -707,16 +978,97 @@ Please focus your modifications ONLY on the user's specific requirements while s
                 }
 
                 try {
+                  // 调试：打印原始数据（前200字符）
+                  console.log("📨 原始数据:", dataPayload.substring(0, 200));
                   const parsed = JSON.parse(dataPayload);
+                  
+                  // 检查是否有错误
+                  if (parsed.error) {
+                    console.error("❌ API返回错误:", parsed.error);
+                    const errorMsg = parsed.error.message || "未知错误";
+                    const errorCode = parsed.error.code || "";
+                    
+                    // 特殊处理地理位置限制错误
+                    if (errorMsg.includes("User location is not supported")) {
+                      throw new Error(`地理位置限制：${errorMsg}\n\n解决方案：\n1. 使用VPN/代理（推荐美国节点）\n2. 或更换其他模型（如 openai/gpt-4o）`);
+                    } else {
+                      throw new Error(`API错误 (${errorCode}): ${errorMsg}`);
+                    }
+                  }
+                  
+                  // 调试：打印解析后的数据结构
+                  console.log("📦 解析到的数据结构:", {
+                    hasChoices: !!parsed.choices,
+                    hasChoice0: !!(parsed.choices && parsed.choices[0]),
+                    hasDelta: !!(parsed.choices && parsed.choices[0] && parsed.choices[0].delta),
+                    hasMessage: !!(parsed.choices && parsed.choices[0] && parsed.choices[0].message),
+                    finishReason: parsed.choices && parsed.choices[0] && parsed.choices[0].finish_reason
+                  });
+                  
+                  // 处理流式增量内容（delta）
+                  if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
+                    const delta = parsed.choices[0].delta;
+                    
+                    // 检查是否有图片数据（images数组）
+                    if (delta.images && Array.isArray(delta.images) && delta.images.length > 0) {
+                      console.log("✅ 在Delta中检测到images数组，长度:", delta.images.length);
+                      for (const img of delta.images) {
+                        if (img.image_url && img.image_url.url) {
+                          console.log("✅ 找到图片URL，长度:", img.image_url.url.length);
+                          // 直接保存图片URL
+                          content = img.image_url.url;
+                          break;
+                        }
+                      }
+                    }
+                    // 处理文本内容
+                    else if (delta.content) {
+                      const deltaContent = delta.content;
+                      console.log("📝 Delta文本内容:", typeof deltaContent, deltaContent.substring ? deltaContent.substring(0, 100) : deltaContent);
+                      
+                      // 过滤掉 OPENROUTER PROCESSING 标记
+                      if (typeof deltaContent === 'string' && deltaContent.includes("OPENROUTER PROCESSING")) {
+                        processingCount++;
+                        // 更新处理状态显示
+                        this.updateProcessingStatus(processingCount);
+                        continue; // 跳过这个内容，不添加到最终结果
+                      }
+                      
+                      // 处理字符串类型的delta
+                      if (typeof deltaContent === 'string') {
+                        content += deltaContent;
+                        // 实时更新显示内容（但不尝试渲染图片）
+                        this.updateStreamingContent(content, false);
+                      }
+                    }
+                  }
+                  
+                  // 处理完整的消息内容（message.content）- 通常在最后一个chunk
                   if (
                     parsed.choices &&
                     parsed.choices[0] &&
-                    parsed.choices[0].delta &&
-                    parsed.choices[0].delta.content
+                    parsed.choices[0].message &&
+                    parsed.choices[0].message.content
                   ) {
-                    content += parsed.choices[0].delta.content;
-                    // 实时更新显示内容（但不尝试渲染图片）
-                    this.updateStreamingContent(content, false);
+                    console.log("✅ 检测到完整消息内容");
+                    const messageContent = parsed.choices[0].message.content;
+                    console.log("📝 Message内容类型:", typeof messageContent, Array.isArray(messageContent) ? `数组长度:${messageContent.length}` : '');
+                    
+                    // 如果是数组格式（包含图片数据）
+                    if (Array.isArray(messageContent)) {
+                      for (const item of messageContent) {
+                        console.log("📝 数组项:", item.type, item.source ? '有source' : '无source');
+                        if (item.type === 'image' && item.source && item.source.data) {
+                          console.log("✅ 在流式响应中检测到图片数据，数据长度:", item.source.data.length);
+                          content = JSON.stringify({ content: messageContent });
+                          break;
+                        }
+                      }
+                    } else if (typeof messageContent === 'string') {
+                      // 如果是字符串，追加到content
+                      console.log("📝 Message是字符串，长度:", messageContent.length);
+                      content += messageContent;
+                    }
                   }
 
                   // 检查是否流式结束
@@ -725,6 +1077,7 @@ Please focus your modifications ONLY on the user's specific requirements while s
                     parsed.choices[0] &&
                     parsed.choices[0].finish_reason === "stop"
                   ) {
+                    console.log("🏁 检测到流式结束标记");
                     isStreamComplete = true;
                   }
                 } catch (e) {
@@ -736,12 +1089,25 @@ Please focus your modifications ONLY on the user's specific requirements while s
               if (done) break;
             }
 
-            if (content) {
+            // 清理最终内容
+            const finalContent = content.replace(/:\s*OPENROUTER\s+PROCESSING\s*/gi, '').trim();
+            
+            console.log("流式接收完成");
+            console.log("原始内容长度:", content.length);
+            console.log("清理后内容长度:", finalContent.length);
+            console.log("PROCESSING标记出现次数:", processingCount);
+            console.log("内容前100字符:", finalContent.substring(0, 100));
+            
+            if (finalContent) {
               // 流式完成后进行最终解析和渲染
-              this.finalizeStreamingContent(content);
+              this.finalizeStreamingContent(finalContent);
               this.showSuccess("图片编辑完成！");
+            } else if (content.length > 0) {
+              // 如果有原始内容但清理后为空，说明只有PROCESSING标记
+              console.warn("⚠️ 内容只包含PROCESSING标记，没有实际数据");
+              this.showError("AI处理完成，但未返回有效内容。可能需要重试。");
             } else {
-              throw new Error("API返回数据格式错误");
+              throw new Error("API返回数据为空");
             }
           } catch (error) {
             console.error("生成图片失败:", error);
@@ -752,17 +1118,162 @@ Please focus your modifications ONLY on the user's specific requirements while s
           }
         }
 
-        displayResult(content) {
-          console.log("开始解析内容:", content.substring(0, 100) + "...");
+        renderImageResult(imageDataUrl, imageType, base64String, originalContent = '') {
+          console.log(
+            "📊 图片类型:",
+            imageType,
+            "| 数据长度:",
+            base64String.length,
+            "| 预估大小:",
+            Math.round((base64String.length * 0.75) / 1024) + "KB"
+          );
 
-          // 改进的 base64 图片匹配：
-          // 1) 放宽空白匹配；2) 避免贪婪跨越；3) 兼容大小写
-          const base64ImageMatch = content.match(
-            /!\[image\]\(data:\s*image\/([^;]+);\s*base64,\s*\n?([^)]+)\)/i
+          this.resultContainer.innerHTML = `
+            <div style="text-align: center; margin-bottom: 20px;">
+              <img src="${imageDataUrl}" class="result-image" alt="AI编辑后的图片" id="resultImage" 
+                   onload="console.log('图片加载成功')" 
+                   onerror="console.error('图片加载失败'); this.style.display='none'; this.nextElementSibling.style.display='block';">
+              <div style="display: none; color: #c33; padding: 20px; background: #fee; border-radius: 10px;">
+                图片加载失败，可能是数据格式问题
+              </div>
+            </div>
+            <div class="image-info">
+              <div class="info-item">
+                <span class="info-label">生成时间:</span>
+                <span class="info-value">${new Date().toLocaleString()}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">图片格式:</span>
+                <span class="info-value">${imageType.toUpperCase()}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">图片大小:</span>
+                <span class="info-value">${Math.round((base64String.length * 0.75) / 1024)} KB</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">数据长度:</span>
+                <span class="info-value">${base64String.length} 字符</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">操作:</span>
+                <span class="info-value">
+                  <button id="downloadBtn" class="action-button" data-base64="${imageDataUrl}" data-filename="ai-edited-image.${imageType}">
+                    📥 下载图片
+                  </button>
+                  <button id="copyBtn" class="action-button success" data-base64="${base64String}">
+                    📋 复制Base64
+                  </button>
+                  <button id="debugBtn" class="action-button" style="background: #6c757d;">
+                    🔍 调试信息
+                  </button>
+                </span>
+              </div>
+            </div>
+          `;
+
+          // 绑定按钮事件
+          setTimeout(() => {
+            const downloadBtn = document.getElementById("downloadBtn");
+            const copyBtn = document.getElementById("copyBtn");
+            const debugBtn = document.getElementById("debugBtn");
+            const resultImage = document.getElementById("resultImage");
+
+            if (downloadBtn) {
+              downloadBtn.addEventListener("click", () => {
+                const base64Data = downloadBtn.getAttribute("data-base64");
+                const filename = downloadBtn.getAttribute("data-filename");
+                this.downloadBase64Image(base64Data, filename);
+              });
+            }
+
+            if (copyBtn) {
+              copyBtn.addEventListener("click", () => {
+                const base64String = copyBtn.getAttribute("data-base64");
+                this.copyBase64ToClipboard(base64String);
+              });
+            }
+
+            if (debugBtn) {
+              debugBtn.addEventListener("click", () => {
+                this.showDebugInfo(originalContent || base64String, base64String);
+              });
+            }
+
+            if (resultImage) {
+              resultImage.addEventListener("click", () => {
+                this.openImagePreview(resultImage.src);
+              });
+            }
+          }, 100);
+        }
+
+        displayResult(content) {
+          console.log("开始解析内容，总长度:", content.length);
+          console.log("内容预览:", content.substring(0, 200) + "...");
+
+          // 清理内容：移除所有 OPENROUTER PROCESSING 标记
+          const cleanedContent = content.replace(/:\s*OPENROUTER\s+PROCESSING\s*/gi, '').trim();
+          console.log("清理后内容长度:", cleanedContent.length);
+
+          // 检查是否直接是 data URL 格式（最常见的情况）
+          if (cleanedContent.startsWith('data:image/')) {
+            console.log("✅ 检测到直接的data URL格式");
+            const match = cleanedContent.match(/^data:image\/([^;]+);base64,(.+)$/);
+            if (match) {
+              const imageType = match[1];
+              const base64String = match[2];
+              console.log("📊 图片类型:", imageType, "数据长度:", base64String.length);
+              
+              if (base64String.length < 100) {
+                console.warn("⚠️ Base64数据可能不完整:", base64String.length);
+                this.showError("图片数据不完整，请重试");
+                return;
+              }
+              
+              this.renderImageResult(cleanedContent, imageType, base64String, content);
+              return;
+            }
+          }
+
+          // 尝试解析 JSON 格式的响应（新格式）
+          try {
+            const jsonData = JSON.parse(cleanedContent);
+            console.log("✅ 检测到JSON格式响应");
+            
+            // 检查是否包含图片数据
+            if (jsonData.content && Array.isArray(jsonData.content)) {
+              for (const item of jsonData.content) {
+                if (item.type === 'image' && item.source && item.source.data) {
+                  console.log("✅ 检测到JSON格式的图片数据");
+                  
+                  const imageType = item.source.media_type.split('/')[1]; // 例如: "image/png" -> "png"
+                  const base64String = item.source.data;
+                  const imageDataUrl = `data:${item.source.media_type};base64,${base64String}`;
+                  
+                  // 验证base64数据完整性
+                  if (base64String.length < 100) {
+                    console.warn("⚠️ Base64数据可能不完整:", base64String.length);
+                    this.showError("图片数据不完整，请重试");
+                    return;
+                  }
+                  
+                  this.renderImageResult(imageDataUrl, imageType, base64String, content);
+                  return;
+                }
+              }
+            }
+          } catch (e) {
+            console.log("不是JSON格式，尝试Markdown格式解析");
+          }
+
+          // 改进的 base64 图片匹配（Markdown格式）：
+          // 1) 放宽空白匹配；2) 避免贪婪跨越；3) 兼容大小写；4) 支持多种图片格式
+          const base64ImageMatch = cleanedContent.match(
+            /!\[image\]\(data:\s*image\/([^;]+);\s*base64,\s*([^)]+)\)/i
           );
 
           if (base64ImageMatch) {
-            console.log("检测到base64图片数据");
+            console.log("✅ 检测到Markdown格式的base64图片数据");
 
             // 提取图片信息
             const fullImageData = base64ImageMatch[0];
@@ -773,100 +1284,12 @@ Please focus your modifications ONLY on the user's specific requirements while s
 
             // 验证base64数据完整性
             if (base64String.length < 100) {
-              console.warn("Base64数据可能不完整:", base64String.length);
+              console.warn("⚠️ Base64数据可能不完整:", base64String.length);
               this.showError("图片数据不完整，请重试");
               return;
             }
-
-            console.log(
-              "图片类型:",
-              imageType,
-              "数据长度:",
-              base64String.length
-            );
-
-            this.resultContainer.innerHTML = `
-                        <div style="text-align: center; margin-bottom: 20px;">
-                            <img src="${imageDataUrl}" class="result-image" alt="AI编辑后的图片" id="resultImage" 
-                                 onload="console.log('图片加载成功')" 
-                                 onerror="console.error('图片加载失败'); this.style.display='none'; this.nextElementSibling.style.display='block';">
-                            <div style="display: none; color: #c33; padding: 20px; background: #fee; border-radius: 10px;">
-                                图片加载失败，可能是数据格式问题
-                            </div>
-                        </div>
-                        <div class="image-info">
-                            <div class="info-item">
-                                <span class="info-label">生成时间:</span>
-                                <span class="info-value">${new Date().toLocaleString()}</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">图片格式:</span>
-                                <span class="info-value">${imageType.toUpperCase()}</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">图片大小:</span>
-                                <span class="info-value">${Math.round(
-                                  (base64String.length * 0.75) / 1024
-                                )} KB</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">数据长度:</span>
-                                <span class="info-value">${
-                                  base64String.length
-                                } 字符</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">操作:</span>
-                                <span class="info-value">
-                                    <button id="downloadBtn" class="action-button" data-base64="${imageDataUrl}" data-filename="ai-edited-image.${imageType}">
-                                        📥 下载图片
-                                    </button>
-                                    <button id="copyBtn" class="action-button success" data-base64="${base64String}">
-                                        📋 复制Base64
-                                    </button>
-                                    <button id="debugBtn" class="action-button" style="background: #6c757d;">
-                                        🔍 调试信息
-                                    </button>
-                                </span>
-                            </div>
-                        </div>
-                    `;
-
-            // 绑定按钮事件
-            setTimeout(() => {
-              const downloadBtn = document.getElementById("downloadBtn");
-              const copyBtn = document.getElementById("copyBtn");
-              const debugBtn = document.getElementById("debugBtn");
-              const resultImage = document.getElementById("resultImage");
-
-              if (downloadBtn) {
-                downloadBtn.addEventListener("click", () => {
-                  const base64Data = downloadBtn.getAttribute("data-base64");
-                  const filename = downloadBtn.getAttribute("data-filename");
-                  this.downloadBase64Image(base64Data, filename);
-                });
-              }
-
-              if (copyBtn) {
-                copyBtn.addEventListener("click", () => {
-                  const base64String = copyBtn.getAttribute("data-base64");
-                  this.copyBase64ToClipboard(base64String);
-                });
-              }
-
-              if (debugBtn) {
-                debugBtn.addEventListener("click", () => {
-                  this.showDebugInfo(content, base64String);
-                });
-              }
-
-              if (resultImage) {
-                resultImage.addEventListener("click", () => {
-                  this.openImagePreview(resultImage.src);
-                });
-              }
-            }, 100);
-
+            
+            this.renderImageResult(imageDataUrl, imageType, base64String, content);
             return;
           }
 
@@ -914,6 +1337,21 @@ Please focus your modifications ONLY on the user's specific requirements while s
           }
         }
 
+        updateProcessingStatus(count) {
+          // 更新处理状态显示
+          const statusElement = document.getElementById("streamStatus");
+          if (statusElement) {
+            statusElement.innerHTML = `🔄 AI处理中... (${count} 步)`;
+            statusElement.style.color = "#667eea";
+          }
+          
+          // 更新加载提示中的处理信息
+          const processingInfo = document.getElementById("processingInfo");
+          if (processingInfo) {
+            processingInfo.textContent = `已处理 ${count} 个步骤...`;
+          }
+        }
+
         updateStreamingContent(content, tryRender = true) {
           // 初始化流式显示容器
           if (!document.getElementById("streamingContent")) {
@@ -946,19 +1384,39 @@ Please focus your modifications ONLY on the user's specific requirements while s
           const contentLengthElement = document.getElementById("contentLength");
 
           if (streamingElement) {
+            // 清理内容（移除 PROCESSING 标记）
+            const displayContent = content.replace(/:\s*OPENROUTER\s+PROCESSING\s*/gi, '').trim();
+            
             // 检查是否包含图片标记
-            if (content.includes("![image](data:image/")) {
+            if (displayContent.includes("![image](data:image/")) {
+              // 提取图片标记的位置和长度信息
+              const imageMarkerIndex = displayContent.indexOf("![image](data:image/");
+              const estimatedProgress = Math.min(100, Math.round((displayContent.length / 50000) * 100));
+              
               streamingElement.innerHTML = `
                  <div style="color: #667eea; font-weight: bold;">🖼️ 检测到图片数据...</div>
                  <div style="color: #999; font-size: 0.9rem; margin-top: 5px;">正在接收图片数据，请稍候...</div>
+                 <div style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin-top: 10px;">
+                   <div style="font-size: 0.9rem; color: #666; margin-bottom: 5px;">数据接收进度: ${estimatedProgress}%</div>
+                   <div style="background: #e9ecef; height: 8px; border-radius: 4px; overflow: hidden;">
+                     <div style="background: linear-gradient(90deg, #667eea, #764ba2); height: 100%; width: ${estimatedProgress}%; transition: width 0.3s ease;"></div>
+                   </div>
+                 </div>
                  <div style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin-top: 10px; font-family: monospace; font-size: 0.8rem; max-height: 100px; overflow: hidden;">
-                   ${content.substring(0, 200)}${
-                content.length > 200 ? "..." : ""
-              }
+                   ${displayContent.substring(0, 200)}${displayContent.length > 200 ? "..." : ""}
                  </div>
                `;
+            } else if (displayContent.length > 0) {
+              streamingElement.innerHTML = `
+                 <div style="color: #666; line-height: 1.6; white-space: pre-wrap;">${displayContent}</div>
+               `;
             } else {
-              streamingElement.textContent = content;
+              streamingElement.innerHTML = `
+                 <div style="color: #999; text-align: center; padding: 20px;">
+                   <div style="font-size: 2rem; margin-bottom: 10px;">⏳</div>
+                   <div>等待AI响应...</div>
+                 </div>
+               `;
             }
 
             // 自动滚动到底部
@@ -966,7 +1424,9 @@ Please focus your modifications ONLY on the user's specific requirements while s
           }
 
           if (contentLengthElement) {
-            contentLengthElement.textContent = `${content.length} 字符`;
+            // 显示清理后的内容长度
+            const cleanLength = content.replace(/:\s*OPENROUTER\s+PROCESSING\s*/gi, '').trim().length;
+            contentLengthElement.textContent = `${cleanLength} 字符`;
           }
         }
 
@@ -997,7 +1457,8 @@ Please focus your modifications ONLY on the user's specific requirements while s
         }
 
         showError(message) {
-          this.errorMessage.textContent = message;
+          // 将换行符转换为 <br> 标签以支持多行显示
+          this.errorMessage.innerHTML = message.replace(/\n/g, '<br>');
           this.errorMessage.classList.add("show");
           this.successMessage.classList.remove("show");
         }

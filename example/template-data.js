@@ -1,0 +1,186 @@
+// 婚纱照模板数据
+window.TEMPLATE_DATA = [
+    {
+        "id": "8a259166-863e-4be7-8bf2-233c9b5f5448",
+        "name": "韩式室内婚纱照风格",
+        "description": "韩式室内婚纱",
+        "category": "classic",
+        "preview_image_url": "http://123.57.16.107:9000/ai-images/templates/1760497311322-71572191-c235-4fc4-8104-b096f8695350.png",
+        "prompt_config": {
+            "steps": 1,
+            "basePrompt": "",
+            "negativePrompt": "",
+            "styleModifiers": ["韩式室内婚纱照风格"]
+        },
+        "price_credits": 10,
+        "is_active": true,
+        "sort_order": 0,
+        "created_at": "2025-10-15T03:02:46.197898+00:00",
+        "prompt_list": [
+            "Full body wedding portrait of a happy young Asian couple. Groom in a classic black tuxedo with a bow tie, bride in an elegant white strapless ball gown with a tulle skirt. They are posing together in a studio against a minimalist textured gray background. Soft and romantic studio lighting, photorealistic, high detail.",
+            "Korean-style wedding photography. A beautiful Asian bride in a voluminous white wedding dress holding a small bouquet, and a handsome groom in a sharp black tuxedo. Posing elegantly for a full-length shot in a photo studio. Clean and simple gray backdrop, gentle and warm lighting, timeless and classic feel, ultra realistic.",
+            "A minimalist and chic wedding photo. Full shot of a smiling Asian couple. The groom wears a simple black suit, the bride is in a pure white ball gown. They stand close together in a bright, clean studio with a light gray concrete-textured background. Natural and sweet pose, soft lighting, high-quality professional photograph.",
+            "High-fashion studio portrait of a newlywed Asian couple. The groom in a tailored black tuxedo, the bride in a designer strapless corset-bodice ball gown with a flowing skirt. Full body shot, posing arm-in-arm, smiling at the camera. Sophisticated solid grey background, masterpiece, 8k, professional photography.",
+            "A romantic and elegant studio wedding photo of an Asian couple. Captured in a tender moment with soft, diffused lighting that creates a gentle glow. The bride, in a stunning white gown, and the groom in a classic tuxedo. Posing against a plain gray wall. cinematic, photorealistic, intimate atmosphere."
+        ]
+    },
+    {
+        "id": "c97f38d2-4ed8-4ce5-8166-95ce4c693e2a",
+        "name": "中式传统婚服照",
+        "description": "",
+        "category": "classic",
+        "preview_image_url": "http://123.57.16.107:9000/ai-images/templates/1760507856452-316c59ac-9919-4957-a496-c5e974ca533a.png",
+        "prompt_config": {
+            "basePrompt": "",
+            "negativePrompt": "",
+            "styleModifiers": []
+        },
+        "price_credits": 10,
+        "is_active": true,
+        "sort_order": 0,
+        "created_at": "2025-10-15T05:58:19.118326+00:00",
+        "prompt_list": [
+            "A studio portrait of a Chinese couple in traditional Ming Dynasty wedding Hanfu. The groom wears an ornate red and gold robe with a formal black hat (wusha mao), and the bride wears a magnificent red gown with an elaborate phoenix corona headdress. They pose elegantly against a solid, vibrant red background, next to a classic Chinese paper lantern. Dramatic studio lighting, photorealistic, rich details.",
+            "An opulent royal wedding portrait of an Asian couple dressed in historical Chinese attire. The scene is luxurious and formal. Their garments are intricately embroidered with gold thread. The bride is adorned with a stunning, jeweled headdress. The entire photo is set against a bold red studio backdrop, cinematic lighting, masterpiece, 8k.",
+            "A timeless and elegant photo of a Chinese wedding ceremony. The groom lovingly looks down at the bride, who has a gentle, demure expression. They are wearing exquisite traditional red wedding robes. The scene is softly illuminated by a warm glow from a nearby antique lantern, creating an intimate and romantic atmosphere. Plain red background, high fashion photography.",
+            "Gufeng (ancient Chinese style) wedding photography. A young Asian couple in red and gold Ming Dynasty Hanfu. Intricate embroidery, phoenix corona, wusha hat. Posing in a studio with a plain red wall. Traditional lantern prop. Professional photo, ultra-detailed, regal, ceremonial.",
+            "A beautifully composed shot of a Chinese bride and groom in classic wedding costumes. The composition focuses on their interaction and the stunning details of their red and gold outfits. The background is a minimalist, solid crimson red, making the subjects pop. High-quality studio portrait, sharp focus, vibrant colors."
+        ]
+    },
+    {
+        "id": "24a9d8eb-875c-4440-8cb2-4471ae055488",
+        "name": "韩式风格",
+        "description": "韩式风格",
+        "category": "artistic",
+        "preview_image_url": "http://123.57.16.107:9000/ai-images/templates/1760495218630-2e31e461-488f-4832-9186-ec0a7df40372.png",
+        "prompt_config": {
+            "basePrompt": "",
+            "negativePrompt": "",
+            "styleModifiers": ["韩式风格"]
+        },
+        "price_credits": 10,
+        "is_active": true,
+        "sort_order": 0,
+        "created_at": "2025-10-14T14:30:53.850419+00:00",
+        "prompt_list": [
+            "A playful Korean-style indoor wedding photo. The bride wearing a modern off-the-shoulder short wedding dress, showing off her legs, with a birdcage veil. The groom in a light grey casual suit with an open collar shirt. Bright crimson background, lively, even lighting. The couple is striking a fun, relaxed pose, perhaps the bride playfully pushing the groom, both with big, genuine smiles. Emphasize retaining the original subjects' distinctive facial features and joyful expressions, with variations solely in the lighthearted pose and playful interaction",
+            "A romantic Korean-style indoor wedding close-up. The bride in a classic sweetheart neckline gown with delicate crystal embellishments, her hair swept up. The groom in a crisp white shirt and dark vest, a patterned tie. Deep red background, soft, flattering spotlighting. The couple is cheek to cheek, eyes closed, savoring the moment, or looking lovingly into each other's eyes. Crucially, preserve the original subjects' facial structures and tender expressions, varying only the intimacy of the pose and close-up framing",
+            "A vibrant Korean-style indoor wedding portrait. The bride in a glittering princess ball gown and long cathedral veil, the groom in a classic black tuxedo with a white shirt and black bow tie. Bright red background, dramatic, soft lighting. The groom is gently dipping the bride, both laughing joyfully at the camera. Ensure the original subjects' facial features and characteristic smiles are preserved, with variations only in dynamic pose and slight background sheen.",
+            "A Korean-style indoor wedding photo. A newlywed couple, the bride in a white A-line lace wedding dress with a delicate veil, the groom in a charcoal grey suit with a slim tie. Solid red background, soft studio lighting. The couple is standing close, hands gently clasped, looking at each other with tender smiles. Maintain original subjects' facial features and expressions, varying only the embrace and subtle background textures.",
+            "A Korean-style indoor wedding photo of a newlywed couple. The bride is wearing a white off-the-shoulder ball gown wedding dress with a white veil. The groom is wearing a white suit jacket, black trousers, and a black bow tie. The background is solid red, with soft, bright lighting. The bride and groom are standing together, smiling happily, facing the camera. Please retain the facial features and overall expressions of the original image's subjects, only altering their poses and subtle background elements"
+        ]
+    },
+    {
+        "id": "2db3a3d0-d0d7-4c54-9323-dad76ec93dfb",
+        "name": "新中式外景婚纱照",
+        "description": "新中式外景婚纱照",
+        "category": "location",
+        "preview_image_url": "http://123.57.16.107:9000/ai-images/templates/1760498454574-5d62bb34-3b7c-45a2-8630-01a8205b7325.png",
+        "prompt_config": {
+            "basePrompt": "",
+            "negativePrompt": "",
+            "styleModifiers": []
+        },
+        "price_credits": 10,
+        "is_active": true,
+        "sort_order": 0,
+        "created_at": "2025-10-15T03:21:46.548367+00:00",
+        "prompt_list": [
+            "A romantic full-body photograph of a young Asian couple on their wedding day, walking along a stone path by a tranquil lake filled with lotus leaves. The groom, in a stylish light brown suit, holds a classic white paper umbrella over them. The bride, in an elegant off-the-shoulder white lace mermaid gown, holds a bouquet. Soft natural daylight, lush green background, photorealistic, cinematic shot.",
+            "Neo-Chinese style wedding photography. A beautiful Asian couple strolling by a serene lakeside. The groom holds a traditional oil-paper umbrella. They are surrounded by the lush greenery of a lotus pond. The bride wears a delicate lace dress. The atmosphere is peaceful and romantic. Captured with a professional camera, high detail, soft focus background.",
+            "A candid shot of a happy Asian newlywed couple walking together in a beautiful park. The man, wearing a beige three-piece suit, is looking at his bride while holding a white umbrella. The woman, in a stunning lace wedding dress, is looking down with a gentle smile. Natural outdoor lighting, beautiful bokeh effect with a lake and trees in the background, ultra realistic.",
+            "An enchanting wedding portrait of an Asian couple in a classical Chinese garden setting. They are walking on a pathway next to a large pond. The scene is framed by willow branches. The groom holds a white umbrella. The overall mood is timeless, elegant, and serene. Soft, overcast lighting, 8k, professional photography.",
+            "Full shot, a young Asian couple, wedding attire. Man in a tan suit holding a white paper umbrella, woman in a white lace gown. They are walking on a path next to a lake with lotus plants. Outdoor, natural light, romantic, ultra-detailed photograph."
+        ]
+    },
+    {
+        "id": "e321d0c0-3b4e-4705-8b37-7ee421797cfc",
+        "name": "国潮新中式风格",
+        "description": "国潮新中式风格",
+        "category": "classic",
+        "preview_image_url": "http://123.57.16.107:9000/ai-images/templates/1760508287896-d7c2fa28-b5a3-4b97-9184-7e00f01244db.png",
+        "prompt_config": {
+            "basePrompt": "",
+            "negativePrompt": "",
+            "styleModifiers": []
+        },
+        "price_credits": 10,
+        "is_active": true,
+        "sort_order": 0,
+        "created_at": "2025-10-15T06:05:29.976907+00:00",
+        "prompt_list": [
+            "A joyful studio portrait of a young Asian couple. The groom in a modern black tuxedo and the bride in a stylish white wedding dress with a veil. They are playfully posing, holding up red paper cutouts of the Chinese \"Double Happiness\" (囍) symbol. The background is a solid, vibrant red. Bright, high-key lighting, photorealistic, full of energy.",
+            "Modern Chinoiserie style wedding photo. A happy Asian couple in Western wedding attire (tuxedo and white gown) celebrating with traditional elements. They are smiling broadly for the camera and holding red \"Xi\" characters against a minimalist red backdrop. Fun, vibrant, and contemporary feel, professional studio quality.",
+            "A playful and energetic shot of a newlywed Asian couple. They have cute red heart stickers on their cheeks. The groom raises a \"Double Happiness\" symbol above his head, and the bride holds another one. He wears a black suit, she wears a white dress. Posing in front of a clean, solid red wall. Candid and happy expression, high detail, masterpiece.",
+            "Studio photo, a cheerful young Asian couple, modern wedding theme. Groom in a tuxedo, bride in a white wedding gown and veil. They are holding red Chinese \"囍\" character props. Posing playfully, looking at the camera. Plain bold red background, clean lighting, vibrant colors, ultra-realistic.",
+            "A vibrant and celebratory wedding photograph of an Asian couple. Their faces are filled with laughter and joy. Dressed in contemporary wedding clothes, they playfully showcase the traditional red \"Double Happiness\" signs. The composition is dynamic against a striking solid red background. Cinematic, high fashion, 8k."
+        ]
+    },
+    {
+        "id": "a4c4cd42-86ef-445f-b721-668c39636902",
+        "name": "汉服婚纱照",
+        "description": "汉服婚纱照",
+        "category": "fantasy",
+        "preview_image_url": "http://123.57.16.107:9000/ai-images/templates/1762159498865-e9cb5d5d-442a-448a-acd8-b1d64491f006.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20251103%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20251103T084505Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=05214ff6e236f6fe2f6bce7dec1c04866b76ee5a9f468b1028f671a0fcbb5abd",
+        "prompt_config": {
+            "basePrompt": "",
+            "negativePrompt": "",
+            "styleModifiers": []
+        },
+        "price_credits": 10,
+        "is_active": true,
+        "sort_order": 0,
+        "created_at": "2025-11-03T08:45:47.397382+00:00",
+        "prompt_list": [
+            "A joyful young East Asian couple in a candid moment, dressed in vibrant orange and mint green modern Hanfu wedding attire. They are smiling brightly for the camera, leaning against a warm terracotta wall under a traditional Chinese eave. The style is a blend of cinematic fashion photography and playful charm, with soft, warm lighting. The man holds a white folding fan.",
+            "A vibrant, high-detail photo of a happy Chinese couple in stylized Tang Dynasty wedding Hanfu. The woman wears a flowing mint green and sheer orange dress with a traditional updo hairstyle. The man wears an orange robe and a scholar's hat. They are laughing together against a minimalist orange wall, capturing a moment of pure joy.",
+            "\"New Chinese Style\" wedding photography. A playful East Asian couple against a solid orange architectural background. He's in a scholarly orange Hanfu holding a fan; she's in a delicate orange and green dress holding a small circular fan. Editorial style, warm aesthetic, dynamic and happy expressions.",
+            "A medium shot of a cheerful young Asian couple, dressed in colorful, historically-inspired Chinese wedding garments. The background is a clean, bright orange wall, with the dark curve of a traditional tiled roof framing the top. Their expressions are full of laughter. The image has warm, cinematic lighting with a film-like quality."
+        ]
+    },
+    {
+        "id": "285b99a4-92f2-4fc4-bf67-6c55a347b350",
+        "name": "室内棚拍轻婚纱风格",
+        "description": "室内棚拍轻婚纱风格",
+        "category": "location",
+        "preview_image_url": "http://123.57.16.107:9000/ai-images/templates/1762159993200-f4370ca9-d9e7-4b96-885e-c946ab001abf.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20251103%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20251103T085401Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=98bd2d80e249b753db2cbe61a287a4eae3c68caf21d940c0a2d4694f7cca5713",
+        "prompt_config": {
+            "basePrompt": "",
+            "negativePrompt": "",
+            "styleModifiers": []
+        },
+        "price_credits": 10,
+        "is_active": true,
+        "sort_order": 0,
+        "created_at": "2025-11-03T08:54:07.215843+00:00",
+        "prompt_list": [
+            "A candid studio portrait of a joyful young East Asian couple. The woman in a white wedding dress leans her head sideways, smiling warmly, holding a bouquet of white roses. The man in a classic black suit and bow tie leans in playfully from behind her. The background is a solid, warm tan color. Soft, flattering studio lighting.",
+            "A minimalist Korean-style wedding photo. A happy young Asian couple poses against a simple warm-toned studio backdrop. She is wearing an elegant white strapless gown and delicate earrings, he is in a sharp black suit. Their expressions are bright and full of love. The style is clean, modern, and romantic.",
+            "Cinematic indoor photoshoot of a loving Asian couple. The bride, holding a white bouquet, rests her head with a radiant smile. The groom, in a black tuxedo, smiles happily above her. The composition is intimate and angled. The scene is illuminated by soft, diffused light against a seamless terracotta-colored background."
+        ]
+    },
+    {
+        "id": "ee4a1ebc-c0af-4b16-9ee8-6c38b96f0784",
+        "name": "欧式复古或城堡婚纱照",
+        "description": "欧式复古或城堡婚纱照",
+        "category": "artistic",
+        "preview_image_url": "http://123.57.16.107:9000/ai-images/templates/1762160875487-34c26171-b0cc-49f7-bd0a-db2c6900191e.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20251103%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20251103T090755Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=b6ec7ef0bbda14af0e056d1d378abf785ef9f1bca5316ef56164cea346e21095",
+        "prompt_config": {
+            "basePrompt": "",
+            "negativePrompt": "",
+            "styleModifiers": []
+        },
+        "price_credits": 10,
+        "is_active": true,
+        "sort_order": 0,
+        "created_at": "2025-11-03T09:08:32.189869+00:00",
+        "prompt_list": [
+            "A grand, wide-angle shot of a young East Asian couple posing in a European plaza. In the background is a magnificent Renaissance-style building with a prominent red-roofed clock tower under a dramatic, cloudy sky. The woman wears an elegant black and textured light-blue ball gown with black gloves, holding a white lace parasol. The man wears a classic black three-piece tuxedo, holding a white bouquet. They are looking at each other lovingly. Cinematic, editorial style.",
+            "A romantic, vintage-style wedding photo. An elegant Asian couple stands before a classic European château. The bride is in a sophisticated strapless gown with a black velvet bodice and a voluminous, patterned blue-gray skirt. She accessorizes with a pearl necklace, long black gloves, and a delicate lace umbrella. The groom looks dapper in a black tuxedo and bow tie. The atmosphere is timeless, elegant, and slightly moody.",
+            "\"European destination wedding\" photography. A stylish East Asian couple in a loving pose. The background features a historic stone building with arches and a tall bell tower. The bride's gown is a masterpiece of black and textured jacquard fabric. The groom is in a perfectly tailored black tuxedo. The lighting is soft and diffused, capturing the overcast sky, creating a painterly and romantic quality.",
+            "An elegant East Asian couple in formal wedding attire in front of a large, old European building with a clock tower. She holds a vintage lace parasol. He holds a small white bouquet. The shot is a full-body portrait, capturing the grandeur of the location and their romantic connection. Muted color palette, sophisticated feel."
+        ]
+    }
+];
+
+

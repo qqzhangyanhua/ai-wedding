@@ -52,6 +52,8 @@ export const GenerateImageSchema = z.object({
   model: z.string().optional(),
   // 可选：图像输入（data URL），用于 chat/completions 图像编辑/条件生成
   image_inputs: z.array(z.string()).max(3).optional(),
+  // 可选：模型来源
+  source: z.enum(['openRouter', '302', 'openAi']).optional(),
 });
 
 /**

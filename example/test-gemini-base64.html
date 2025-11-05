@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Base64 测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        textarea {
+            min-height: 100px;
+            font-family: monospace;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            display: block;
+        }
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            display: block;
+        }
+        .preview {
+            max-width: 100%;
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+        .code {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .info {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196F3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Gemini Base64 API 测试</h1>
+        
+        <div class="info">
+            <strong>测试目的：</strong>验证 Gemini API 使用 Base64 图片的正确格式<br>
+            <strong>关键点：</strong>使用 <code>inline_data</code> 而不是 <code>image_url</code>
+        </div>
+
+        <div class="section">
+            <label>API Key:</label>
+            <input type="text" id="apiKey" value="sk-lBL94e53hHVsiYmemvexQr0Nt4Eg23fkYc2HLV5CPNugUVll">
+        </div>
+
+        <div class="section">
+            <label>上传图片:</label>
+            <input type="file" id="fileInput" accept="image/*">
+            <img id="preview" class="preview" style="display:none;">
+        </div>
+
+        <div class="section">
+            <label>提示词:</label>
+            <input type="text" id="prompt" value="变成Ghibli卡通风格" placeholder="例如：变成Ghibli卡通风格">
+        </div>
+
+        <div class="section">
+            <button id="testBtn" onclick="testAPI()">🚀 测试 API</button>
+        </div>
+
+        <div id="result" class="result"></div>
+
+        <div class="section" style="margin-top: 30px;">
+            <label>请求体预览:</label>
+            <div class="code" id="requestPreview">上传图片后显示...</div>
+        </div>
+    </div>
+
+    <script>
+        let imageBase64 = '';
+        let imageMimeType = '';
+
+        // 文件上传处理
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const dataUrl = event.target.result;
+                
+                // 显示预览
+                const preview = document.getElementById('preview');
+                preview.src = dataUrl;
+                preview.style.display = 'block';
+
+                // 提取 Base64 和 MIME 类型
+                const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+                if (matches) {
+                    imageMimeType = matches[1];
+                    imageBase64 = matches[2];
+                    
+                    updateRequestPreview();
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // 更新请求体预览
+        function updateRequestPreview() {
+            const prompt = document.getElementById('prompt').value || '变成Ghibli卡通风格';
+            const requestBody = {
+                "contents": [
+                    {
+                        "parts": [
+                            {
+                                "text": prompt
+                            },
+                            {
+                                "inline_data": {
+                                    "mime_type": imageMimeType,
+                                    "data": imageBase64.substring(0, 50) + "..." // 只显示前50个字符
+                                }
+                            }
+                        ]
+                    }
+                ],
+                "generationConfig": {
+                    "responseModalities": [
+                        "TEXT",
+                        "IMAGE"
+                    ]
+                }
+            };
+
+            document.getElementById('requestPreview').textContent = JSON.stringify(requestBody, null, 2);
+        }
+
+        // 测试 API
+        async function testAPI() {
+            const resultDiv = document.getElementById('result');
+            const testBtn = document.getElementById('testBtn');
+            
+            // 验证输入
+            if (!imageBase64) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '❌ 请先上传图片！';
+                return;
+            }
+
+            const apiKey = document.getElementById('apiKey').value.trim();
+            if (!apiKey) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '❌ 请输入 API Key！';
+                return;
+            }
+
+            const prompt = document.getElementById('prompt').value.trim();
+            if (!prompt) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '❌ 请输入提示词！';
+                return;
+            }
+
+            // 禁用按钮
+            testBtn.disabled = true;
+            testBtn.textContent = '⏳ 测试中...';
+            resultDiv.className = 'result';
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = '正在调用 API...';
+
+            try {
+                // 构建请求体
+                const requestBody = {
+                    "contents": [
+                        {
+                            "parts": [
+                                {
+                                    "text": prompt
+                                },
+                                {
+                                    "inline_data": {
+                                        "mime_type": imageMimeType,
+                                        "data": imageBase64
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    "generationConfig": {
+                        "responseModalities": [
+                            "TEXT",
+                            "IMAGE"
+                        ]
+                    }
+                };
+
+                console.log('📤 发送请求:', {
+                    url: 'https://api.302.ai/google/v1/models/gemini-2.5-flash-image',
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + apiKey.substring(0, 10) + '...',
+                        'Content-Type': 'application/json'
+                    },
+                    bodySize: JSON.stringify(requestBody).length + ' bytes'
+                });
+
+                // 发送请求
+                const response = await fetch('https://api.302.ai/google/v1/models/gemini-2.5-flash-image', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                console.log('📥 收到响应:', response.status, response.statusText);
+
+                const data = await response.json();
+                console.log('📦 响应数据:', data);
+
+                if (!response.ok) {
+                    throw new Error(data.error?.message || data.message || `HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                // 显示成功结果
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <strong>✅ API 调用成功！</strong><br><br>
+                    <strong>响应状态:</strong> ${response.status} ${response.statusText}<br>
+                    <strong>响应数据:</strong><br>
+                    <pre style="max-height: 300px; overflow-y: auto; background: white; padding: 10px; border-radius: 5px;">${JSON.stringify(data, null, 2)}</pre>
+                `;
+
+                // 如果有生成的图片，显示出来
+                if (data.candidates && data.candidates[0]) {
+                    const parts = data.candidates[0].content?.parts || [];
+                    parts.forEach(part => {
+                        if (part.url) {
+                            resultDiv.innerHTML += `<br><img src="${part.url}" class="preview" alt="生成的图片">`;
+                        } else if (part.inlineData) {
+                            const imgSrc = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+                            resultDiv.innerHTML += `<br><img src="${imgSrc}" class="preview" alt="生成的图片">`;
+                        }
+                    });
+                }
+
+            } catch (error) {
+                console.error('❌ 错误:', error);
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <strong>❌ API 调用失败</strong><br><br>
+                    <strong>错误信息:</strong> ${error.message}<br><br>
+                    <strong>可能原因:</strong><br>
+                    • API Key 无效或已过期<br>
+                    • 图片格式不支持<br>
+                    • 网络连接问题<br>
+                    • API 配额已用完<br><br>
+                    <strong>调试建议:</strong><br>
+                    1. 检查浏览器控制台的详细日志<br>
+                    2. 验证 API Key 是否正确<br>
+                    3. 确认图片大小不超过限制
+                `;
+            } finally {
+                testBtn.disabled = false;
+                testBtn.textContent = '🚀 测试 API';
+            }
+        }
+
+        // 提示词输入时更新预览
+        document.getElementById('prompt').addEventListener('input', function() {
+            if (imageBase64) {
+                updateRequestPreview();
+            }
+        });
+    </script>
+</body>
+</html>
+

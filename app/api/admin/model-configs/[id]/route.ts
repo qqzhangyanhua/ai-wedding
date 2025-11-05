@@ -85,6 +85,7 @@ export async function PATCH(
   if (body.api_key !== undefined) updateData.api_key = body.api_key;
   if (body.model_name !== undefined) updateData.model_name = body.model_name;
   if (body.status !== undefined) updateData.status = body.status;
+  if (body.source !== undefined) updateData.source = body.source;
   if (body.description !== undefined) updateData.description = body.description;
 
   if (Object.keys(updateData).length === 0) {

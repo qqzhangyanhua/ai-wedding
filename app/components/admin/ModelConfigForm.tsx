@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
-import type { ModelConfig, CreateModelConfigInput, ModelConfigType, ModelConfigStatus } from '@/types/model-config';
+import type { ModelConfig, CreateModelConfigInput, ModelConfigType, ModelConfigStatus, ModelConfigSource } from '@/types/model-config';
 
 interface ModelConfigFormProps {
   config?: ModelConfig | null;
@@ -19,6 +19,7 @@ export function ModelConfigForm({ config, onSubmit, onCancel }: ModelConfigFormP
     api_key: '',
     model_name: '',
     status: 'inactive' as ModelConfigStatus,
+    source: 'openAi' as ModelConfigSource,
     description: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,6 +33,7 @@ export function ModelConfigForm({ config, onSubmit, onCancel }: ModelConfigFormP
         api_key: config.api_key,
         model_name: config.model_name,
         status: config.status,
+        source: config.source,
         description: config.description || '',
       });
     }
@@ -159,6 +161,24 @@ export function ModelConfigForm({ config, onSubmit, onCancel }: ModelConfigFormP
             </select>
             <p className="mt-1 text-xs text-muted-foreground">
               同一类型只能有一个激活配置，激活此配置将自动停用其他配置
+            </p>
+          </div>
+
+          <div>
+            <label className="block mb-2 text-sm font-medium">
+              模型来源 <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={formData.source}
+              onChange={(e) => handleChange('source', e.target.value)}
+              className="px-3 py-2 w-full rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="openAi">OpenAI</option>
+              <option value="openRouter">OpenRouter</option>
+              <option value="302">302.AI</option>
+            </select>
+            <p className="mt-1 text-xs text-muted-foreground">
+              选择模型的API提供商
             </p>
           </div>
 

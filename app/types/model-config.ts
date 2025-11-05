@@ -6,6 +6,8 @@ export type ModelConfigType = 'generate-image' | 'identify-image' | 'other';
 
 export type ModelConfigStatus = 'active' | 'inactive';
 
+export type ModelConfigSource = 'openRouter' | '302' | 'openAi';
+
 export interface ModelConfig {
   id: string;
   type: ModelConfigType;
@@ -14,6 +16,7 @@ export interface ModelConfig {
   api_key: string;
   model_name: string;
   status: ModelConfigStatus;
+  source: ModelConfigSource;
   description?: string;
   created_at: string;
   updated_at: string;
@@ -30,6 +33,7 @@ export interface CreateModelConfigInput {
   api_key: string;
   model_name: string;
   status?: ModelConfigStatus;
+  source?: ModelConfigSource;
   description?: string;
 }
 
@@ -42,6 +46,7 @@ export interface UpdateModelConfigInput {
   api_key?: string;
   model_name?: string;
   status?: ModelConfigStatus;
+  source?: ModelConfigSource;
   description?: string;
 }
 

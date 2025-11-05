@@ -22,6 +22,12 @@ const STATUS_LABELS: Record<string, string> = {
   'inactive': '停用',
 };
 
+const SOURCE_LABELS: Record<string, string> = {
+  'openAi': 'OpenAI',
+  'openRouter': 'OpenRouter',
+  '302': '302.AI',
+};
+
 export function ModelConfigList({ configs, onEdit, onDelete, onToggleStatus }: ModelConfigListProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -74,6 +80,9 @@ export function ModelConfigList({ configs, onEdit, onDelete, onToggleStatus }: M
                   </span>
                   <span className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-full">
                     {TYPE_LABELS[config.type] || config.type}
+                  </span>
+                  <span className="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded-full">
+                    {SOURCE_LABELS[config.source] || config.source}
                   </span>
                 </div>
 

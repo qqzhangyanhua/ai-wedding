@@ -76,6 +76,7 @@ CREATE TABLE public.model_configs (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   created_by uuid,
+  source text NOT NULL DEFAULT 'openAi'::text CHECK (source = ANY (ARRAY['openRouter'::text, '302'::text, 'openAi'::text])),
   CONSTRAINT model_configs_pkey PRIMARY KEY (id),
   CONSTRAINT model_configs_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id)
 );

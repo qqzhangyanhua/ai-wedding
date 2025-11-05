@@ -102,6 +102,7 @@ export async function POST(req: NextRequest) {
         api_key: body.api_key,
         model_name: body.model_name,
         status: body.status || 'inactive',
+        source: body.source || 'openAi',
         description: body.description || null,
         created_by: user?.id,
       },

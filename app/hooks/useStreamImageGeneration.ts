@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { ImageGenerationSettings, GenerationState } from '@/components/GenerateSinglePage/types';
+import type { ModelConfigSource } from '@/types/model-config';
 
 interface UseStreamImageGenerationProps {
   onError: (message: string) => void;
@@ -74,7 +75,8 @@ export function useStreamImageGeneration({ onError, onSuccess }: UseStreamImageG
   const generateImage = async (
     originalImage: string,
     prompt: string,
-    settings: ImageGenerationSettings
+    settings: ImageGenerationSettings,
+    source?: ModelConfigSource
   ): Promise<void> => {
     onError('');
     onSuccess('');
@@ -103,7 +105,7 @@ Please focus your modifications ONLY on the user's specific requirements while s
         throw new Error('未登录，请先登录');
       }
 
-      const response = await fetch('/api/generate-stream', {
+      const response = await fetch('/api/generate-single', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -113,6 +115,7 @@ Please focus your modifications ONLY on the user's specific requirements while s
           prompt: enhancedPrompt,
           image_inputs: [originalImage],
           model: 'gemini-2.5-flash-image',
+          source: source,
         }),
       });
 

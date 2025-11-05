@@ -146,7 +146,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      // 先清理本地状态和存储，确保前端立即退出
+      setUser(null);
+      setProfile(null);
+      
+      // 清理本地存储（Supabase 会话数据）
+      if (typeof window !== 'undefined') {
+        // 清理所有 Supabase 相关的本地存储
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('sb-')) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        sessionStorage.clear();
+      }
+      
+      // 尝试调用 Supabase 退出登录（仅清理本地），忽略错误
+      // 使用 scope: 'local' 避免调用可能失败的服务端注销接口
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (error) {
+      // 忽略退出登录错误，因为本地状态已清理
+      console.warn('退出登录时发生错误（已忽略）:', error);
+    }
   };
 
   const refreshProfile = useCallback(async () => {

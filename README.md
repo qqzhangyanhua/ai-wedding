@@ -58,6 +58,7 @@
 - pnpm
 - Supabase 账号
 - OpenAI API Key 或兼容服务
+- Docker（可选，用于 MinIO 对象存储）
 
 ### 1️⃣ 克隆项目
 
@@ -326,7 +327,13 @@ pnpm start
 # 代码检查
 pnpm lint
 
-# PM2 部署
+# PM2 部署（方式一：直接使用 PM2）
+pm2 start ecosystem.config.js   # 启动
+pm2 stop ai-wedding              # 停止
+pm2 restart ai-wedding           # 重启
+pm2 logs ai-wedding              # 查看日志
+
+# PM2 部署（方式二：通过 pnpm 脚本）
 pnpm pm2:start          # 启动
 pnpm pm2:stop           # 停止
 pnpm pm2:restart        # 重启
@@ -370,6 +377,46 @@ pnpm pm2:logs           # 查看日志
 
 ## 🔧 常见问题
 
+### Q: 如何使用 Docker 安装 MinIO？
+
+A: 使用以下命令安装和运行 MinIO：
+
+**1. 拉取 MinIO 镜像**
+```bash
+docker pull quay.io/minio/minio:latest
+```
+
+**2. 运行 MinIO 容器**
+```bash
+docker run -d \
+  --name minio \
+  -p 9000:9000 \
+  -p 9001:9001 \
+  -v /mnt/data:/data \
+  -e "MINIO_ROOT_USER=admin" \
+  -e "MINIO_ROOT_PASSWORD=admin123" \
+  quay.io/minio/minio server /data --console-address ":9001"
+```
+
+**3. 查看容器状态**
+```bash
+docker ps
+```
+
+**访问地址**：
+- API 端点：`http://localhost:9000`
+- 管理控制台：`http://localhost:9001`
+- 默认账号：`admin` / `admin123`
+
+**环境变量配置**（`.env` 文件）：
+```bash
+MINIO_ENDPOINT=http://localhost:9000
+MINIO_ACCESS_KEY=admin
+MINIO_SECRET_KEY=admin123
+MINIO_BUCKET_NAME=ai-images
+MINIO_USE_SSL=false
+```
+
 ### Q: 上传照片提示"未检测到人物"？
 
 A: 确保照片中有清晰的人物面部，光线充足，不模糊。
@@ -386,22 +433,53 @@ A: 运行 `pnpm fix-minio` 或参考 [MinIO 配置文档](docs/MINIO_403_FIX.md)
 
 ## 🚢 部署
 
-### Vercel 部署（推荐）
-
-1. Fork 项目到 GitHub
-2. 在 Vercel 导入项目
-3. 配置环境变量
-4. 点击 Deploy
-
 ### 自托管部署
 
-```bash
-# 构建
-pnpm build
+#### 使用 PM2 部署（推荐）
 
-# 使用 PM2 启动
-pnpm pm2:start
+**1. 构建生产版本**
+```bash
+pnpm build
 ```
+
+**2. 启动 PM2 服务**
+```bash
+pm2 start ecosystem.config.js
+```
+
+**PM2 配置说明** (`ecosystem.config.js`)：
+```javascript
+{
+  name: "ai-wedding",           // 应用名称
+  script: "pnpm",                // 使用 pnpm 启动
+  args: "start",                 // 执行 pnpm start
+  cwd: "/opt/ai-wedding/ai-wedding",  // 工作目录（根据实际路径修改）
+  env: {
+    PORT: 8081,                  // 服务端口
+    NODE_ENV: "production"       // 生产环境
+  },
+  instances: 1,                  // 单实例运行
+  autorestart: true,             // 自动重启
+  max_memory_restart: "1G",      // 内存超过 1G 时重启
+  error_file: "logs/pm2-error.log",  // 错误日志
+  out_file: "logs/pm2-out.log"       // 输出日志
+}
+```
+
+**PM2 常用命令**：
+```bash
+pm2 start ecosystem.config.js   # 启动服务
+pm2 stop ai-wedding              # 停止服务
+pm2 restart ai-wedding           # 重启服务
+pm2 logs ai-wedding              # 查看日志
+pm2 status                       # 查看状态
+pm2 delete ai-wedding            # 删除服务
+```
+
+**注意事项**：
+- 修改 `ecosystem.config.js` 中的 `cwd` 路径为你的项目实际路径
+- 确保 `logs/` 目录存在，或修改日志路径
+- 首次部署需要先执行 `pnpm build`
 
 详见 [DEPLOYMENT.md](DEPLOYMENT.md)
 

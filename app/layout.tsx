@@ -4,6 +4,7 @@ import './globals.css';
 import { Providers } from './providers';
 import HeaderBridge from './shared/HeaderBridge';
 import { ProgressBar } from '@/components/ui/progress-bar';
+import { GITHUB_REPO_URL } from '@/lib/constants';
 
 const cormorant = Cormorant({
   subsets: ['latin'],
@@ -57,6 +58,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                       <li><a href="#" className="hover:text-dusty-rose transition-colors">博客</a></li>
                       <li><a href="#" className="hover:text-dusty-rose transition-colors">联系</a></li>
                       <li><a href="#" className="hover:text-dusty-rose transition-colors">隐私</a></li>
+                      <li>
+                        <a
+                          href={GITHUB_REPO_URL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:text-dusty-rose transition-colors inline-flex items-center gap-1"
+                        >
+                          GitHub
+                        </a>
+                      </li>
                     </ul>
                   </div>
                 </div>

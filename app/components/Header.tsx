@@ -1,7 +1,8 @@
-import { Camera, Sparkles, LogIn, LogOut, User, Menu, X } from 'lucide-react';
+import { Camera, Sparkles, LogIn, LogOut, User, Menu, X, Github } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthModal } from './AuthModal';
+import { GITHUB_REPO_URL } from '@/lib/constants';
 
 interface HeaderProps {
   onNavigate: (page: string) => void;
@@ -91,6 +92,15 @@ export function Header({ onNavigate, currentPage }: HeaderProps) {
             </div>
 
             <div className="hidden gap-4 items-center md:flex">
+              <a
+                href={GITHUB_REPO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 rounded-md transition-all duration-200 text-stone hover:text-navy hover:bg-champagne"
+                aria-label="GitHub 仓库"
+              >
+                <Github className="w-5 h-5" />
+              </a>
               {user ? (
                 <>
                   <div className="flex items-center gap-2.5 px-4 py-2 bg-champagne border border-stone/10 rounded-full shadow-sm">
@@ -179,6 +189,16 @@ export function Header({ onNavigate, currentPage }: HeaderProps) {
                 className="block px-4 py-2 w-full text-sm font-medium text-left rounded-md transition-colors text-stone hover:text-navy hover:bg-champagne"
               >
                 案例
+              </a>
+              <a
+                href={GITHUB_REPO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex gap-2 items-center px-4 py-2 w-full text-sm font-medium text-left rounded-md transition-colors text-stone hover:text-navy hover:bg-champagne"
+              >
+                <Github className="w-4 h-4" />
+                <span>GitHub</span>
               </a>
               {user ? (
                 <>

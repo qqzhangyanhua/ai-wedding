@@ -69,7 +69,7 @@ export function Toast({ message, type = 'success', onClose, duration }: ToastPro
   const style = styles[type];
 
   return (
-    <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-300">
+    <div className="fixed top-4 right-4 z-[9999] animate-in slide-in-from-top-2 fade-in duration-300">
       <div className={`flex items-center gap-3 px-5 py-4 rounded-lg border-2 shadow-xl backdrop-blur-sm ${style.bg} ${style.text} min-w-[320px] max-w-md`}>
         <Icon className={`w-6 h-6 flex-shrink-0 ${style.icon}`} />
         <p className="flex-1 font-medium text-sm leading-relaxed">{message}</p>

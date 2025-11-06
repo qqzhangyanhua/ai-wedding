@@ -41,6 +41,7 @@ export interface CreateModelConfigInput {
  * 更新模型配置的输入类型（所有字段可选）
  */
 export interface UpdateModelConfigInput {
+  type?: ModelConfigType;
   name?: string;
   api_base_url?: string;
   api_key?: string;

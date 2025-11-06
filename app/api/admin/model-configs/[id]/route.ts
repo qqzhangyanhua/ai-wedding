@@ -80,6 +80,7 @@ export async function PATCH(
 
   // 构建更新对象（只更新提供的字段）
   const updateData: Record<string, unknown> = {};
+  if (body.type !== undefined) updateData.type = body.type;
   if (body.name !== undefined) updateData.name = body.name;
   if (body.api_base_url !== undefined) updateData.api_base_url = body.api_base_url;
   if (body.api_key !== undefined) updateData.api_key = body.api_key;

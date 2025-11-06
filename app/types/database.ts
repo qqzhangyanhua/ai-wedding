@@ -139,6 +139,21 @@ export interface GalleryItem {
   created_at: string;
 }
 
+// 单张生成历史记录类型定义
+export interface SingleGeneration {
+  id: string;
+  user_id: string;
+  prompt: string;
+  original_image: string;
+  result_image: string;
+  settings: {
+    facePreservation?: string;
+    creativityLevel?: string;
+  };
+  credits_used: number;
+  created_at: string;
+}
+
 // 系统公告类型定义
 export interface SystemAnnouncement {
   id: string;

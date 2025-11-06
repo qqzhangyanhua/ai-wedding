@@ -96,7 +96,18 @@ export async function POST(req: Request) {
     console.log(`[${requestId}] 速率限制检查通过: ${rec?.count || 1}/${RL_LIMIT}`);
 
     const body = await req.json();
-    console.log(`[${requestId}] 请求 Body:`, JSON.stringify(body, null, 2));
+    
+    // 过滤 base64 数据用于日志打印
+    const logBody = {
+      ...body,
+      image_inputs: body.image_inputs?.map((img: string) => {
+        if (img.startsWith('data:image')) {
+          return `data:image/...[base64 ${img.length} 字符]`;
+        }
+        return img;
+      })
+    };
+    console.log(`[${requestId}] 请求 Body:`, JSON.stringify(logBody, null, 2));
 
     // 使用Zod验证输入
     const validation = validateData(GenerateImageSchema, body);

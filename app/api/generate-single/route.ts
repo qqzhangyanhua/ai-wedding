@@ -227,7 +227,18 @@ export async function POST(req: Request) {
 
     // 6) 参数验证
     const body = await req.json();
-    console.log(`[${requestId}] 请求 Body:`, JSON.stringify(body, null, 2));
+    
+    // 过滤 base64 数据用于日志打印
+    const logBody = {
+      ...body,
+      image_inputs: body.image_inputs?.map((img: string) => {
+        if (img.startsWith('data:image')) {
+          return `data:image/...[base64 ${img.length} 字符]`;
+        }
+        return img;
+      })
+    };
+    console.log(`[${requestId}] 请求 Body:`, JSON.stringify(logBody, null, 2));
 
     const validation = validateData(GenerateImageSchema, body);
     if (!validation.success) {

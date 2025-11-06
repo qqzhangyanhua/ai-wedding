@@ -60,12 +60,20 @@ export function useImageUpload({ user, onError, onSuccess }: UseImageUploadProps
     // 验证文件类型
     if (!file.type.startsWith('image/')) {
       onError('请选择图片文件！');
+      // 重置文件输入，允许重新选择相同文件
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
       return;
     }
 
     // 验证文件大小 (10MB)
     if (file.size > 10 * 1024 * 1024) {
       onError('图片文件不能超过10MB！');
+      // 重置文件输入，允许重新选择相同文件
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
       return;
     }
 
@@ -100,6 +108,10 @@ export function useImageUpload({ user, onError, onSuccess }: UseImageUploadProps
             `检测到图片未包含人物：${invalidResult?.description || '请上传包含人物的照片'}。\n请重新选择包含人物的照片。`
           );
           setUploadState(prev => ({ ...prev, isValidatingImage: false }));
+          // 重置文件输入，允许重新选择相同文件
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
           return;
         }
 
@@ -119,6 +131,10 @@ export function useImageUpload({ user, onError, onSuccess }: UseImageUploadProps
         console.error('图片验证失败:', err);
         onError(err instanceof Error ? err.message : '图片验证失败，请重试');
         setUploadState(prev => ({ ...prev, isValidatingImage: false }));
+        // 重置文件输入，允许重新选择相同文件
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
       }
     };
     reader.readAsDataURL(file);

@@ -77,7 +77,9 @@ export function GenerateSinglePage() {
       return;
     }
 
-    await generateImage(uploadState.originalImage, currentPrompt, settings, source);
+    // 优先使用 MinIO URL，如果不存在则使用 base64（兼容性回退）
+    const imageToUse = uploadState.uploadedImageUrl || uploadState.originalImage;
+    await generateImage(imageToUse, currentPrompt, settings, source);
   };
 
   const viewImage = (imageUrl: string, title: string): void => {

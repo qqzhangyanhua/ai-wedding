@@ -10,6 +10,16 @@ const ENV_IDENTIFY_API_BASE_URL = process.env.IDENTIFY_API_BASE_URL || 'https://
 const ENV_IDENTIFY_API_KEY = process.env.IDENTIFY_API_KEY;
 const ENV_IDENTIFY_MODEL = process.env.IDENTIFY_MODEL || 'gpt-4o-mini';
 
+// 从环境变量读取是否禁用 SSL 验证（仅用于开发环境或信任的内网环境）
+const DISABLE_SSL_VERIFY = process.env.DISABLE_SSL_VERIFY === 'true';
+
+// 如果需要禁用 SSL 验证，设置全局环境变量
+// 这会影响所有的 Node.js HTTPS 请求
+if (DISABLE_SSL_VERIFY) {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+  console.log('[SSL] ⚠️ SSL 证书验证已全局禁用（仅用于开发环境）');
+}
+
 /**
  * 从数据库获取激活的识别模型配置
  */

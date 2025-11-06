@@ -22,6 +22,9 @@ export default function Page() {
       case 'pricing':
         router.push('/pricing');
         break;
+      case 'generate-single':
+        router.push('/generate-single');
+        break;
       case 'results':
         if (generationId) router.push(`/results/${generationId}`);
         break;

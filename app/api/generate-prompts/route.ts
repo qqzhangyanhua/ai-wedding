@@ -96,7 +96,7 @@ JSON格式示例：
 
   console.log(`[generateWeddingPrompts] 调用 API: ${endpoint}`);
   console.log(`[generateWeddingPrompts] 模型: ${model}`);
-  console.log(`[generateWeddingPrompts] 图片大小: ${imageBase64.substring(0, 50)}...`);
+  console.log(`[generateWeddingPrompts] 图片大小: ${base64Data.length} 字符`);
 
   const response = await fetch(endpoint, {
     method: 'POST',

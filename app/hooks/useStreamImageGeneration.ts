@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import { ImageGenerationSettings, GenerationState } from '@/components/GenerateSinglePage/types';
 import type { ModelConfigSource } from '@/types/model-config';
 
@@ -9,6 +10,7 @@ interface UseStreamImageGenerationProps {
 }
 
 export function useStreamImageGeneration({ onError, onSuccess }: UseStreamImageGenerationProps) {
+  const { user } = useAuth();
   const [generationState, setGenerationState] = useState<GenerationState>({
     isGenerating: false,
     generatedImage: null,
@@ -40,7 +42,12 @@ export function useStreamImageGeneration({ onError, onSuccess }: UseStreamImageG
     }
   };
 
-  const uploadGeneratedImageToMinio = async (imageDataUrl: string): Promise<void> => {
+  const uploadGeneratedImageToMinio = async (
+    imageDataUrl: string,
+    originalImage: string,
+    prompt: string,
+    settings: ImageGenerationSettings
+  ): Promise<void> => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
@@ -62,7 +69,69 @@ export function useStreamImageGeneration({ onError, onSuccess }: UseStreamImageG
 
       if (response.ok) {
         const result = await response.json();
-        console.log('生成的图片已上传到 MinIO:', result.url);
+        const resultImageUrl = result.presignedUrl || result.url || imageDataUrl;
+        console.log('生成的图片已上传到 MinIO:', resultImageUrl);
+        
+        // 静默保存到数据库
+        try {
+          // 从 AuthContext 获取用户 ID（避免重复调用 API）
+          if (!user?.id) {
+            console.warn('用户未登录，跳过保存到数据库');
+            return;
+          }
+
+          // 如果 originalImage 是 base64，需要先上传到 MinIO
+          let originalImageUrl = originalImage;
+          if (originalImage.startsWith('data:')) {
+            console.log('原图是 base64，上传到 MinIO...');
+            try {
+              const uploadResponse = await fetch('/api/upload-image', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({
+                  image: originalImage,
+                  folder: 'generate-single/uploads',
+                }),
+              });
+
+              if (uploadResponse.ok) {
+                const uploadResult = await uploadResponse.json();
+                originalImageUrl = uploadResult.presignedUrl || uploadResult.url || originalImage;
+                console.log('原图已上传到 MinIO:', originalImageUrl);
+              } else {
+                console.warn('原图上传到 MinIO 失败，使用 base64');
+              }
+            } catch (uploadErr) {
+              console.warn('原图上传到 MinIO 异常，使用 base64:', uploadErr);
+            }
+          }
+
+          const { error: dbError } = await supabase
+            .from('single_generations')
+            .insert({
+              user_id: user.id,  // 从 AuthContext 获取，避免额外 API 调用
+              prompt: prompt,
+              original_image: originalImageUrl,  // 使用 MinIO URL
+              result_image: resultImageUrl,
+              settings: {
+                facePreservation: settings.facePreservation,
+                creativityLevel: settings.creativityLevel,
+              },
+              credits_used: 15,
+            });
+
+          if (dbError) {
+            console.warn('保存生成记录到数据库失败（不影响主流程）:', dbError);
+          } else {
+            console.log('生成记录已保存到数据库');
+          }
+        } catch (dbErr) {
+          console.warn('保存生成记录异常（不影响主流程）:', dbErr);
+        }
+
         onSuccess('图片生成完成并已保存！');
       } else {
         console.warn('上传生成图片到 MinIO 失败');
@@ -330,7 +399,7 @@ Please focus your modifications ONLY on the user's specific requirements while s
 
           // 只对 data URL 上传到 MinIO，HTTP URL 跳过
           if (imageDataUrl.startsWith('data:')) {
-            await uploadGeneratedImageToMinio(imageDataUrl);
+            await uploadGeneratedImageToMinio(imageDataUrl, originalImage, prompt, settings);
           } else {
             console.log('跳过 HTTP URL 图片的 MinIO 上传:', imageDataUrl);
           }

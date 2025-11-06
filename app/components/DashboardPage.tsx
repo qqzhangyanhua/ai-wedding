@@ -1,24 +1,26 @@
-import { useState, useMemo } from 'react';
-import { Camera, CheckCircle, AlertCircle, Plus, ArrowRight, Sparkles, Loader2, Heart, Download, RefreshCw } from 'lucide-react';
-import Image from 'next/image';
-import { getStatusLabel, getStatusVisual } from '@/lib/status';
-import { Template, ProjectWithTemplate } from '@/types/database';
-//
-import { CardSkeleton } from '@/components/ui/card-skeleton';
+import { useState, useMemo, useCallback } from 'react';
+import { Plus, RefreshCw, Sparkles } from 'lucide-react';
+import { Template, ProjectWithTemplate, SingleGeneration } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProjects } from '@/hooks/useProjects';
+import { useSingleGenerations } from '@/hooks/useSingleGenerations';
 import { useEngagementStats } from '@/hooks/useEngagementStats';
 import { ProjectFilters } from './ProjectFilters';
 import type { FilterState } from '@/types/filters';
-import { ProjectActionsMenu } from './ProjectActionsMenu';
 import { ProjectStatsChart } from './ProjectStatsChart';
 import { FadeIn, GlassCard } from '@/components/react-bits';
-import { StatCard } from './StatCard';
 import { ConfirmDialog } from './ConfirmDialog';
 import { Toast } from './Toast';
 import { ProjectDetailModal } from './ProjectDetailModal';
 import { ProjectEditModal } from './ProjectEditModal';
+import { SingleGenerationDetailModal } from './SingleGenerationDetailModal';
 import { supabase } from '@/lib/supabase';
+import {
+  DashboardHeader,
+  DashboardTabs,
+  SingleGenerationList,
+  ProjectList,
+} from './Dashboard';
 
 interface DashboardPageProps {
   onNavigate: (page: string, template?: Template, generationId?: string) => void;
@@ -27,7 +29,13 @@ interface DashboardPageProps {
 export function DashboardPage({ onNavigate }: DashboardPageProps) {
   const { profile, user } = useAuth();
   const { projects, loading, refreshProjects } = useProjects();
-  const [activeTab, setActiveTab] = useState<'all' | 'completed'>('all');
+  const {
+    generations,
+    loading: singleLoading,
+    refreshGenerations,
+    deleteGeneration,
+  } = useSingleGenerations();
+  const [activeTab, setActiveTab] = useState<'all' | 'completed' | 'single'>('all');
   const { likes, downloads } = useEngagementStats();
   const [filters, setFilters] = useState<FilterState>({
     searchQuery: '',
@@ -35,24 +43,40 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
     dateRange: 'all',
     templateName: '',
   });
-  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(
+    null
+  );
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(
+    null
+  );
   const [selectedProject, setSelectedProject] = useState<ProjectWithTemplate | null>(null);
   const [editingProject, setEditingProject] = useState<ProjectWithTemplate | null>(null);
-
+  const [selectedSingleGeneration, setSelectedSingleGeneration] =
+    useState<SingleGeneration | null>(null);
 
   // 手动刷新项目列表
   const handleManualRefresh = async () => {
-    console.log('手动刷新项目列表...');
-    await refreshProjects();
-    setToast({ message: '项目列表已刷新', type: 'success' });
+    if (activeTab === 'single') {
+      await refreshGenerations();
+    } else {
+      await refreshProjects();
+    }
+    setToast({ message: '列表已刷新', type: 'success' });
   };
 
   // 项目标签页配置
-  const tabs: { id: typeof activeTab; label: string; count: number }[] = [
-    { id: 'all', label: '所有项目', count: projects.length },
-    { id: 'completed', label: '已完成', count: projects.filter(p => p.generation?.status === 'completed').length },
-  ];
+  const tabs = useMemo(
+    () => [
+      { id: 'all', label: '所有项目', count: projects.length },
+      {
+        id: 'completed',
+        label: '已完成',
+        count: projects.filter(p => p.generation?.status === 'completed').length,
+      },
+      { id: 'single', label: '单张生成', count: generations.length },
+    ],
+    [projects, generations]
+  );
 
   // 获取所有模板名称
   const templateNames = useMemo(() => {
@@ -66,66 +90,47 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
   // 应用筛选逻辑
   const filteredProjects = useMemo(() => {
     return projects.filter(project => {
-      // Tab筛选
-      if (activeTab === 'completed' && project.generation?.status !== 'completed') return false;
-
-      // 搜索关键词
+      if (activeTab === 'completed' && project.generation?.status !== 'completed')
+        return false;
       if (filters.searchQuery) {
         const query = filters.searchQuery.toLowerCase();
         const matchName = project.name.toLowerCase().includes(query);
         const matchTemplate = project.template?.name?.toLowerCase().includes(query);
         if (!matchName && !matchTemplate) return false;
       }
-
-      // 状态筛选
-      if (filters.status !== 'all') {
-        if (project.generation?.status !== filters.status) {
-          return false;
-        }
+      if (filters.status !== 'all' && project.generation?.status !== filters.status) {
+        return false;
       }
-
-      // 日期范围筛选
       if (filters.dateRange !== 'all') {
         const now = new Date();
         const createdAt = new Date(project.created_at);
-        const diffMs = now.getTime() - createdAt.getTime();
-        const diffDays = diffMs / (1000 * 60 * 60 * 24);
-
+        const diffDays = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
         if (filters.dateRange === 'today' && diffDays > 1) return false;
         if (filters.dateRange === 'week' && diffDays > 7) return false;
         if (filters.dateRange === 'month' && diffDays > 30) return false;
       }
-
-      // 模板筛选
       if (filters.templateName && project.template?.name !== filters.templateName) {
         return false;
       }
-
       return true;
     });
   }, [projects, activeTab, filters]);
 
-  const getTimeAgo = (dateString: string) => {
+  const getTimeAgo = useCallback((dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
     if (seconds < 60) return '刚刚';
     if (seconds < 3600) return `${Math.floor(seconds / 60)}分钟前`;
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}小时前`;
     if (seconds < 604800) return `${Math.floor(seconds / 86400)}天前`;
     return `${Math.floor(seconds / 604800)}周前`;
-  };
+  }, []);
 
   const handleDeleteProject = async (projectId: string) => {
     try {
-      const { error } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', projectId);
-
+      const { error } = await supabase.from('projects').delete().eq('id', projectId);
       if (error) throw error;
-
       setToast({ message: '项目已删除', type: 'success' });
       await refreshProjects();
     } catch (error) {
@@ -136,7 +141,10 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
     }
   };
 
-  const handleUpdateProject = async (projectId: string, updatedData: Partial<ProjectWithTemplate>) => {
+  const handleUpdateProject = async (
+    projectId: string,
+    updatedData: Partial<ProjectWithTemplate>
+  ) => {
     try {
       const { error } = await supabase
         .from('projects')
@@ -145,9 +153,7 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
           updated_at: new Date().toISOString(),
         })
         .eq('id', projectId);
-
       if (error) throw error;
-
       setToast({ message: '项目更新成功', type: 'success' });
       await refreshProjects();
     } catch (error) {
@@ -156,19 +162,30 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
     }
   };
 
+  const handleDeleteSingleGeneration = async (id: string) => {
+    try {
+      await deleteGeneration(id);
+      setToast({ message: '记录已删除', type: 'success' });
+    } catch (error) {
+      console.error('删除单张生成记录失败:', error);
+      setToast({ message: '删除失败，请重试', type: 'error' });
+    }
+  };
+
   const handleBatchDownload = async (project: ProjectWithTemplate) => {
-    if (!project.generation?.preview_images || project.generation.preview_images.length === 0) {
+    if (
+      !project.generation?.preview_images ||
+      project.generation.preview_images.length === 0
+    ) {
       setToast({ message: '该项目暂无可下载的图片', type: 'error' });
       return;
     }
 
     try {
       setToast({ message: '开始准备下载...', type: 'success' });
-      
       const images = project.generation.preview_images;
       const projectName = project.name || '婚纱照';
-      
-      // 创建一个临时的下载链接
+
       const downloadPromises = images.map(async (imageUrl, index) => {
         try {
           if (imageUrl.startsWith('data:')) {
@@ -184,7 +201,6 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
             setTimeout(() => window.URL.revokeObjectURL(url), 1000);
             return true;
           } else {
-            // 跨域场景下直接打开新标签，避免 CORS 受限
             const a = document.createElement('a');
             a.href = imageUrl;
             a.target = '_blank';
@@ -207,9 +223,9 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
       if (successCount === totalCount) {
         setToast({ message: `成功下载 ${successCount} 张图片`, type: 'success' });
       } else {
-        setToast({ 
-          message: `下载完成：${successCount}/${totalCount} 张图片成功`, 
-          type: 'error' 
+        setToast({
+          message: `下载完成：${successCount}/${totalCount} 张图片成功`,
+          type: 'error',
         });
       }
     } catch (error) {
@@ -225,7 +241,9 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
     }
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
         setToast({ message: '认证失败，请重新登录', type: 'error' });
         return;
@@ -235,7 +253,7 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ isShared }),
       });
@@ -257,73 +275,39 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
     }
   };
 
-
-  const renderStatus = (status: string) => {
-    const allowed = ['completed', 'failed'] as const;
-    type AllowedStatus = typeof allowed[number];
-    const safeStatus: AllowedStatus = (allowed as readonly string[]).includes(status)
-      ? (status as AllowedStatus)
-      : 'completed';
-
-    const { icon, colorClass } = getStatusVisual(safeStatus);
-    const label = getStatusLabel(safeStatus);
-    const Icon = icon === 'check' ? CheckCircle : AlertCircle;
-    return (
-      <>
-        <Icon className={`w-5 h-5 ${colorClass}`} />
-        <span className="text-sm font-medium text-navy">{label}</span>
-      </>
-    );
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-champagne to-ivory py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <FadeIn delay={0.1}>
-          <div className="mb-8 space-y-6">
-            <div>
-              <h1 className="text-3xl font-display font-medium text-navy mb-2">欢迎回来，{profile?.full_name || '亲'}！</h1>
-              <p className="text-stone">管理您的婚纱照项目和生成作品</p>
-            </div>
-
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard icon={Sparkles} label="剩余积分" value={profile?.credits || 0} color="rose-gold" />
-              <StatCard icon={Heart} label="累计收藏" value={likes} color="dusty-rose" />
-              <StatCard icon={Download} label="累计下载" value={downloads} color="navy" />
-              <StatCard icon={CheckCircle} label="完成项目" value={projects.filter(p => p.generation?.status === 'completed').length} color="forest" />
-            </div>
-
-            <div className="flex justify-end">
-              <button
-                onClick={() => onNavigate('pricing')}
-                className="px-6 py-3 bg-gradient-to-r from-rose-gold to-dusty-rose text-ivory rounded-lg hover:shadow-glow transition-all duration-300 font-medium shadow-md"
-                aria-label="前往价格页面购买积分"
-              >
-                购买更多积分
-              </button>
-            </div>
-          </div>
-        </FadeIn>
+    <div className="py-12 min-h-screen bg-gradient-to-b from-champagne to-ivory">
+      <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+        <DashboardHeader
+          profile={profile}
+          projects={projects}
+          likes={likes}
+          downloads={downloads}
+          onNavigateToPricing={() => onNavigate('pricing')}
+        />
 
         <FadeIn delay={0.2}>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+          <div className="flex flex-col gap-4 justify-between items-start mb-8 sm:flex-row sm:items-center">
             <div>
-              <div className="flex items-center gap-3">
-                <h2 className="text-2xl font-display font-medium text-navy">我的项目</h2>
+              <div className="flex gap-3 items-center">
+                <h2 className="text-2xl font-medium font-display text-navy">我的项目</h2>
               </div>
-              <p className="text-stone mt-1">
+              <p className="mt-1 text-stone">
                 {projects.length} 个项目总计
                 {filteredProjects.length < projects.length && (
-                  <span className="text-dusty-rose"> • {filteredProjects.length} 个匹配筛选条件</span>
+                  <span className="text-dusty-rose">
+                    {' '}
+                    • {filteredProjects.length} 个匹配筛选条件
+                  </span>
                 )}
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex gap-3 items-center">
               <button
                 onClick={handleManualRefresh}
                 disabled={loading}
-                className="px-4 py-3 bg-champagne text-navy rounded-md hover:bg-ivory transition-all duration-300 font-medium flex items-center gap-2 border border-stone/20 disabled:opacity-50"
+                className="flex gap-2 items-center px-4 py-3 font-medium rounded-md border transition-all duration-300 bg-champagne text-navy hover:bg-ivory border-stone/20 disabled:opacity-50"
                 title="刷新项目列表"
               >
                 <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
@@ -331,7 +315,7 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
               </button>
               <button
                 onClick={() => onNavigate('templates')}
-                className="px-6 py-3 bg-gradient-to-r from-rose-gold to-dusty-rose text-ivory rounded-md hover:shadow-glow transition-all duration-300 font-medium shadow-md flex items-center gap-2"
+                className="flex gap-2 items-center px-6 py-3 font-medium bg-gradient-to-r rounded-md shadow-md transition-all duration-300 from-rose-gold to-dusty-rose text-ivory hover:shadow-glow"
               >
                 <Plus className="w-5 h-5" />
                 创建新项目
@@ -349,234 +333,81 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
 
         <FadeIn delay={0.3}>
           <GlassCard className="mb-6">
-            <div className="flex border-b border-stone/10">
-              {tabs.map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors ${
-                    activeTab === tab.id
-                      ? 'border-dusty-rose text-dusty-rose'
-                      : 'border-transparent text-stone hover:text-navy'
-                  }`}
-                >
-                  {tab.label}
-                  <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs bg-champagne rounded-full">
-                    {tab.count}
-                  </span>
-                </button>
-              ))}
-            </div>
+            <DashboardTabs
+              tabs={tabs}
+              activeTab={activeTab}
+              onTabChange={id => setActiveTab(id as typeof activeTab)}
+            />
 
-            {loading ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="w-12 h-12 text-dusty-rose animate-spin" />
-              </div>
-            ) : filteredProjects.length === 0 ? (
-              <div className="p-12 text-center">
-                <div className="w-20 h-20 bg-champagne rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Camera className="w-10 h-10 text-stone" />
-                </div>
-                <h3 className="text-xl font-display font-medium text-navy mb-2">还没有项目</h3>
-                <p className="text-stone mb-6">开始用AI创作惊艳的婚纱照</p>
-                <button
-                  onClick={() => onNavigate('templates')}
-                  className="px-6 py-3 bg-gradient-to-r from-rose-gold to-dusty-rose text-ivory rounded-md hover:shadow-glow transition-all duration-300 font-medium inline-flex items-center gap-2 shadow-md"
-                >
-                  <Plus className="w-5 h-5" />
-                  创建您的第一个项目
-                </button>
-              </div>
-            ) : loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <CardSkeleton key={i} aspectClass="aspect-video" lines={2} showBadge />
-              ))}
-            </div>
+            {/* 单张生成标签页 */}
+            {activeTab === 'single' ? (
+              <SingleGenerationList
+                generations={generations}
+                loading={singleLoading}
+                onDelete={handleDeleteSingleGeneration}
+                onView={setSelectedSingleGeneration}
+                onNavigateToGenerateSingle={() => onNavigate('generate-single')}
+              />
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
-                {filteredProjects.map(project => {
-                  // 判断是否有生成结果图片
-                  const hasGeneratedImages = project.generation?.status === 'completed' &&
-                    project.generation?.preview_images &&
-                    project.generation.preview_images.length > 0;
-
-                  // 调试信息
-                  console.log('项目调试信息:', {
-                    projectId: project.id,
-                    projectName: project.name,
-                    generationStatus: project.generation?.status,
-                    previewImagesCount: project.generation?.preview_images?.length || 0,
-                    hasGeneratedImages
-                  });
-
-                  // 优先显示生成结果，其次模板预览，最后上传照片
-                  const displayImage = hasGeneratedImages
-                    ? project.generation!.preview_images[0]
-                    : (project.template?.preview_image_url || project.uploaded_photos[0] || 'https://images.pexels.com/photos/338515/pexels-photo-338515.jpeg?auto=compress&cs=tinysrgb&w=400');
-
-                  return (
-                  <div
-                    key={project.id}
-                    className="bg-ivory rounded-xl overflow-hidden shadow-md border border-stone/10 hover:shadow-xl hover:border-dusty-rose/30 transition-all duration-500 group cursor-pointer"
-                    onClick={() => setSelectedProject(project)}
-                  >
-                    <div className="relative aspect-[4/3] overflow-hidden">
-                      {/* 主显示图片 */}
-                      <Image
-                        src={displayImage}
-                        alt={project.name}
-                        fill
-                        className="object-cover group-hover:scale-110 transition-transform duration-700"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      />
-
-                      {/* 渐变遮罩 */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-navy/70 via-navy/20 to-transparent" />
-
-                      {/* 顶部状态栏 */}
-                      <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-ivory/95 backdrop-blur-sm rounded-full shadow-sm">
-                          {renderStatus(project.generation?.status || project.status)}
-                        </div>
-
-                        <div className="bg-ivory/95 backdrop-blur-sm rounded-md shadow-sm">
-                        <ProjectActionsMenu
-                          projectId={project.id}
-                          projectName={project.name}
-                          status={project.generation?.status || project.status}
-                          isSharedToGallery={project.generation?.is_shared_to_gallery}
-                          onView={() => project.generation?.id && onNavigate('results', undefined, project.generation.id)}
-                          onEdit={() => {
-                            setEditingProject(project);
-                          }}
-                          onDelete={() => {
-                            setDeleteConfirm({ id: project.id, name: project.name });
-                          }}
-                          onShare={() => {
-                            if (project.generation?.id) {
-                              const url = `${window.location.origin}/results/${project.generation.id}`;
-                              navigator.clipboard.writeText(url).then(() => {
-                                setToast({ message: '分享链接已复制到剪贴板', type: 'success' });
-                              }).catch(() => {
-                                setToast({ message: '复制失败，请重试', type: 'error' });
-                              });
-                            }
-                          }}
-                          onDownload={() => {
-                            handleBatchDownload(project);
-                          }}
-                          onToggleGalleryShare={(isShared) => {
-                            if (project.generation?.id) {
-                              handleToggleGalleryShare(project.generation.id, isShared);
-                            }
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                      {/* 已完成的生成结果 - 显示缩略图网格 */}
-                      {hasGeneratedImages && project.generation!.preview_images.length > 1 && (
-                        <div className="absolute bottom-3 left-3 right-3 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          {project.generation!.preview_images.slice(0, 4).map((img, idx) => (
-                            <div key={idx} className="relative w-14 h-14 rounded-md overflow-hidden border-2 border-ivory shadow-lg flex-shrink-0">
-                              <Image
-                                src={img}
-                                alt={`结果 ${idx + 1}`}
-                                fill
-                                className="object-cover"
-                                sizes="56px"
-                              />
-                            </div>
-                          ))}
-                          {project.generation!.preview_images.length > 4 && (
-                            <div className="w-14 h-14 rounded-md bg-navy/80 backdrop-blur-sm border-2 border-ivory shadow-lg flex items-center justify-center flex-shrink-0">
-                              <span className="text-ivory text-xs font-medium">
-                                +{project.generation!.preview_images.length - 4}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* 已完成但只有1张图 - 显示查看按钮 */}
-                      {hasGeneratedImages && project.generation!.preview_images.length === 1 && (
-                        <div className="absolute bottom-3 left-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          <button className="w-full px-4 py-2.5 bg-ivory text-navy rounded-lg hover:bg-champagne transition-all duration-300 font-medium flex items-center justify-center gap-2 shadow-lg">
-                            查看结果
-                            <ArrowRight className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
-
-                      {/* 未完成 - 显示进度提示 */}
-                      {!hasGeneratedImages && project.generation?.status !== 'failed' && (
-                        <div className="absolute bottom-3 left-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          <div className="w-full px-4 py-2.5 bg-navy/80 backdrop-blur-sm text-ivory rounded-lg font-medium flex items-center justify-center gap-2 shadow-lg">
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            生成中...
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* 卡片信息区域 */}
-                    <div className="p-5 space-y-3">
-                      <div>
-                        <h3 className="text-lg font-display font-medium text-navy mb-1 group-hover:text-dusty-rose transition-colors line-clamp-1">
-                          {project.name}
-                        </h3>
-                        <p className="text-sm text-stone line-clamp-1">
-                          模板：{project.template?.name || '未选择'}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center justify-between text-sm pt-2 border-t border-stone/10">
-                        <div className="flex items-center gap-3">
-                          {hasGeneratedImages && (
-                            <div className="flex items-center gap-1.5 text-dusty-rose font-medium">
-                              <Sparkles className="w-4 h-4" />
-                              {project.generation!.preview_images.length} 张作品
-                            </div>
-                          )}
-                          {!hasGeneratedImages && project.uploaded_photos.length > 0 && (
-                            <div className="flex items-center gap-1.5 text-stone">
-                              <Camera className="w-4 h-4" />
-                              {project.uploaded_photos.length} 张照片
-                            </div>
-                          )}
-                        </div>
-                        <span className="text-stone/70">{getTimeAgo(project.created_at)}</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-                })}
-              </div>
+              /* 项目列表标签页 */
+              <ProjectList
+                projects={filteredProjects}
+                loading={loading}
+                onProjectClick={setSelectedProject}
+                onView={project => {
+                  if (project.generation?.id) {
+                    onNavigate('results', undefined, project.generation.id);
+                  }
+                }}
+                onEdit={setEditingProject}
+                onDelete={project =>
+                  setDeleteConfirm({ id: project.id, name: project.name })
+                }
+                onShare={project => {
+                  if (project.generation?.id) {
+                    const url = `${window.location.origin}/results/${project.generation.id}`;
+                    navigator.clipboard
+                      .writeText(url)
+                      .then(() => {
+                        setToast({ message: '分享链接已复制到剪贴板', type: 'success' });
+                      })
+                      .catch(() => {
+                        setToast({ message: '复制失败，请重试', type: 'error' });
+                      });
+                  }
+                }}
+                onDownload={handleBatchDownload}
+                onToggleGalleryShare={handleToggleGalleryShare}
+                onNavigateToTemplates={() => onNavigate('templates')}
+                getTimeAgo={getTimeAgo}
+              />
             )}
 
             {/* 统计图表 */}
-            {projects.length > 0 && (
-              <div className="mt-12 px-6 pb-6">
-                <h3 className="text-xl font-display font-medium text-navy mb-6">数据统计</h3>
+            {projects.length > 0 && activeTab !== 'single' && (
+              <div className="px-6 pb-6 mt-12">
+                <h3 className="mb-6 text-xl font-medium font-display text-navy">数据统计</h3>
                 <ProjectStatsChart projects={projects} />
               </div>
             )}
 
-            <div className="m-6 bg-gradient-to-br from-champagne to-blush rounded-md p-8 border border-rose-gold/20">
-              <div className="flex flex-col md:flex-row items-center gap-6">
-                <div className="w-16 h-16 bg-gradient-to-br from-rose-gold to-dusty-rose rounded-md flex items-center justify-center flex-shrink-0 shadow-sm">
+            <div className="p-8 m-6 bg-gradient-to-br rounded-md border from-champagne to-blush border-rose-gold/20">
+              <div className="flex flex-col gap-6 items-center md:flex-row">
+                <div className="flex flex-shrink-0 justify-center items-center w-16 h-16 bg-gradient-to-br rounded-md shadow-sm from-rose-gold to-dusty-rose">
                   <Sparkles className="w-8 h-8 text-ivory" />
                 </div>
                 <div className="flex-1 text-center md:text-left">
-                  <h3 className="text-xl font-display font-medium text-navy mb-2">需要更多积分？</h3>
+                  <h3 className="mb-2 text-xl font-medium font-display text-navy">
+                    需要更多积分？
+                  </h3>
                   <p className="text-stone">
-                    Get more generations with our affordable credit packages. Perfect for creating unlimited variations.
+                    Get more generations with our affordable credit packages. Perfect for
+                    creating unlimited variations.
                   </p>
                 </div>
                 <button
                   onClick={() => onNavigate('pricing')}
-                  className="px-6 py-3 bg-gradient-to-r from-rose-gold to-dusty-rose text-ivory rounded-md hover:shadow-glow transition-all duration-300 font-medium shadow-md whitespace-nowrap"
+                  className="px-6 py-3 font-medium whitespace-nowrap bg-gradient-to-r rounded-md shadow-md transition-all duration-300 from-rose-gold to-dusty-rose text-ivory hover:shadow-glow"
                 >
                   查看价格
                 </button>
@@ -638,20 +469,25 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
           project={editingProject}
           isOpen={!!editingProject}
           onClose={() => setEditingProject(null)}
-          onSave={async (updatedData) => {
+          onSave={async updatedData => {
             await handleUpdateProject(editingProject.id, updatedData);
             setEditingProject(null);
           }}
         />
       )}
 
+      {/* 单张生成详情模态框 */}
+      {selectedSingleGeneration && (
+        <SingleGenerationDetailModal
+          generation={selectedSingleGeneration}
+          isOpen={!!selectedSingleGeneration}
+          onClose={() => setSelectedSingleGeneration(null)}
+        />
+      )}
+
       {/* Toast 通知 */}
       {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
+        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
       )}
     </div>
   );

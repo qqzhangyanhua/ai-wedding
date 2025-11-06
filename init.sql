@@ -123,6 +123,18 @@ CREATE TABLE public.projects (
   CONSTRAINT projects_pkey PRIMARY KEY (id),
   CONSTRAINT projects_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
 );
+CREATE TABLE public.single_generations (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL DEFAULT auth.uid(),
+  prompt text NOT NULL,
+  original_image text NOT NULL,
+  result_image text NOT NULL,
+  settings jsonb DEFAULT '{}'::jsonb,
+  credits_used integer DEFAULT 15,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT single_generations_pkey PRIMARY KEY (id),
+  CONSTRAINT single_generations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
+);
 CREATE TABLE public.system_announcements (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   content text NOT NULL,

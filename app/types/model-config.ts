@@ -2,7 +2,7 @@
  * 模型配置类型定义
  */
 
-export type ModelConfigType = 'generate-image' | 'identify-image' | 'other';
+export type ModelConfigType = 'generate-image' | 'identify-image' | 'generate-prompts' | 'other';
 
 export type ModelConfigStatus = 'active' | 'inactive';
 

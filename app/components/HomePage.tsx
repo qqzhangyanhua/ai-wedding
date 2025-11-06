@@ -88,7 +88,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
           </FadeIn>
 
           <FadeIn delay={0.4}>
-            <div className="flex flex-col gap-4 justify-center items-center sm:flex-row">
+            <div className="flex flex-col gap-4 justify-center items-center sm:flex-row flex-wrap">
               <button
                 onClick={handleGetStarted}
                 className="px-8 py-4 bg-navy text-ivory rounded-md hover:bg-navy/90 transition-all duration-300 shadow-md hover:shadow-xl font-medium text-lg flex items-center gap-2 hover:-translate-y-0.5"
@@ -105,6 +105,16 @@ export function HomePage({ onNavigate }: HomePageProps) {
                 生成单张
                 <div className="absolute -top-2 -right-2 px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full animate-pulse shadow-lg">
                   HOT
+                </div>
+              </button>
+              <button
+                onClick={() => navigate('generate-prompts')}
+                className="px-8 py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-ivory rounded-md hover:shadow-xl transition-all duration-300 shadow-md font-medium text-lg flex items-center gap-2 hover:-translate-y-0.5 relative group"
+              >
+                <Palette className="w-5 h-5" />
+                AI定制风格
+                <div className="absolute -top-2 -right-2 px-2 py-0.5 bg-green-500 text-white text-xs font-bold rounded-full shadow-lg">
+                  NEW
                 </div>
               </button>
               <button
@@ -259,8 +269,8 @@ export function HomePage({ onNavigate }: HomePageProps) {
               },
               {
                 step: '2',
-                title: '选择模板',
-                description: '浏览我们的精美模板库。挑选您喜爱的场景和风格。',
+                title: '选择模板或生成提示词',
+                description: '浏览我们的精美模板库，或使用AI生成提示词功能创建专属风格。',
                 icon: Palette
               },
               {

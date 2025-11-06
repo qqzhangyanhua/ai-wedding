@@ -66,7 +66,7 @@ CREATE TABLE public.invite_events (
 );
 CREATE TABLE public.model_configs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  type text NOT NULL CHECK (type = ANY (ARRAY['generate-image'::text, 'identify-image'::text, 'other'::text])),
+  type text NOT NULL CHECK (type = ANY (ARRAY['generate-image'::text, 'identify-image'::text, 'generate-prompts'::text, 'other'::text])),
   name text NOT NULL,
   api_base_url text NOT NULL,
   api_key text NOT NULL,

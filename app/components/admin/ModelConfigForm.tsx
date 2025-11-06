@@ -85,6 +85,7 @@ export function ModelConfigForm({ config, onSubmit, onCancel }: ModelConfigFormP
               <option value="generate-image">图片生成</option>
               <option value="other">其他</option>
               <option value="identify-image">识别图片</option>
+              <option value="generate-prompts">生成提示词</option>
             </select>
           </div>
 

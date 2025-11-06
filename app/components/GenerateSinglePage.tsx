@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Wand2, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { useTemplates } from '@/hooks/useTemplates';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,6 +22,7 @@ export function GenerateSinglePage() {
   const { user, profile } = useAuth();
   const { templates, loading: templatesLoading } = useTemplates();
   const { sources, loading: sourcesLoading } = useAvailableSources();
+  const searchParams = useSearchParams();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -48,6 +50,15 @@ export function GenerateSinglePage() {
     handleCustomPromptChange,
     getCurrentPrompt,
   } = useTemplateSelection();
+
+  // 从 URL 参数中获取提示词并自动填充
+  useEffect(() => {
+    const promptFromUrl = searchParams.get('prompt');
+    if (promptFromUrl) {
+      handleCustomPromptChange(decodeURIComponent(promptFromUrl));
+      setSuccess('已自动填充提示词，请上传图片后生成');
+    }
+  }, [searchParams, handleCustomPromptChange]);
 
   const { generationState, generateImage, downloadImage, copyBase64 } = useStreamImageGeneration({
     onError: setError,

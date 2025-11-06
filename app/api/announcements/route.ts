@@ -28,3 +28,4 @@ export async function GET() {
   return NextResponse.json({ announcement: data || null });
 }
 
+

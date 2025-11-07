@@ -1,21 +1,51 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { X, Download } from 'lucide-react';
+import { X, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ImagePreviewModalProps {
-  src: string;
-  alt: string;
+  images: string[];
+  initialIndex: number;
+  isOpen: boolean;
   onClose: () => void;
+  onDownload: (url: string, index: number) => Promise<void>;
+  projectName: string;
 }
 
-export function ImagePreviewModal({ src, alt, onClose }: ImagePreviewModalProps) {
+export function ImagePreviewModal({
+  images,
+  initialIndex,
+  isOpen,
+  onClose,
+  onDownload,
+  projectName,
+}: ImagePreviewModalProps) {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [downloading, setDownloading] = useState(false);
 
-  // ESC 键关闭
+  // 当 initialIndex 变化时更新当前索引
   useEffect(() => {
+    setCurrentIndex(initialIndex);
+  }, [initialIndex]);
+
+  // ESC 键关闭和键盘导航
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePrevious = () => {
+      setCurrentIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
+    };
+
+    const handleNext = () => {
+      setCurrentIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
+    };
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
+      } else if (e.key === 'ArrowLeft') {
+        handlePrevious();
+      } else if (e.key === 'ArrowRight') {
+        handleNext();
       }
     };
 
@@ -27,54 +57,53 @@ export function ImagePreviewModal({ src, alt, onClose }: ImagePreviewModalProps)
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = '';
     };
-  }, [onClose]);
+  }, [isOpen, images.length, onClose]);
+
+  const handlePrevious = () => {
+    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
+  };
+
+  const handleNext = () => {
+    setCurrentIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
+  };
 
   const handleDownload = async () => {
     setDownloading(true);
     try {
-      // 使用 fetch 获取图片数据
-      const response = await fetch(src);
-      const blob = await response.blob();
-      
-      // 创建临时 URL
-      const blobUrl = window.URL.createObjectURL(blob);
-      
-      // 创建下载链接
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = `${alt}-${Date.now()}.png`;
-      document.body.appendChild(link);
-      link.click();
-      
-      // 清理
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(blobUrl);
+      await onDownload(images[currentIndex], currentIndex);
     } catch (err) {
       console.error('下载失败:', err);
-      alert('下载失败，请重试');
     } finally {
       setDownloading(false);
     }
   };
 
+  if (!isOpen || images.length === 0) {
+    return null;
+  }
+
+  const currentImage = images[currentIndex];
+
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
     >
       <div className="relative max-w-5xl max-h-[90vh] w-full animate-in zoom-in-95 duration-200">
-        {/* 顶部操作栏 - 点击可关闭 */}
-        <div 
+        {/* 顶部操作栏 */}
+        <div
           className="absolute -top-14 left-0 right-0 flex items-center justify-between"
-          onClick={onClose}
+          onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center gap-2">
-            <span className="text-sm text-white/80">{alt}</span>
+            <span className="text-sm text-white/80">
+              {projectName} - {currentIndex + 1} / {images.length}
+            </span>
           </div>
           <div className="flex items-center gap-2">
-            {/* 下载按钮 - 阻止冒泡 */}
+            {/* 下载按钮 */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -87,7 +116,7 @@ export function ImagePreviewModal({ src, alt, onClose }: ImagePreviewModalProps)
               <Download className="w-5 h-5" />
               <span className="text-sm">{downloading ? '下载中...' : '下载'}</span>
             </button>
-            {/* 关闭按钮 - 阻止冒泡 */}
+            {/* 关闭按钮 */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -102,15 +131,43 @@ export function ImagePreviewModal({ src, alt, onClose }: ImagePreviewModalProps)
           </div>
         </div>
 
-        {/* 图片容器 - 阻止点击事件冒泡 */}
-        <div 
+        {/* 图片容器 */}
+        <div
           className="relative w-full h-full bg-white rounded-xl shadow-2xl overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
+          {/* 上一张按钮 */}
+          {images.length > 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePrevious();
+              }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center w-12 h-12 rounded-full bg-black/50 text-white transition-all hover:bg-black/70 backdrop-blur-sm z-10"
+              aria-label="上一张"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+          )}
+
+          {/* 下一张按钮 */}
+          {images.length > 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleNext();
+              }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center justify-center w-12 h-12 rounded-full bg-black/50 text-white transition-all hover:bg-black/70 backdrop-blur-sm z-10"
+              aria-label="下一张"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
+          )}
+
           <div className="relative w-full h-[80vh]">
             <Image
-              src={src}
-              alt={alt}
+              src={currentImage}
+              alt={`${projectName} - ${currentIndex + 1}`}
               fill
               className="object-contain"
               sizes="90vw"
@@ -119,12 +176,15 @@ export function ImagePreviewModal({ src, alt, onClose }: ImagePreviewModalProps)
           </div>
         </div>
 
-        {/* 底部提示 - 点击可关闭 */}
-        <div 
+        {/* 底部提示 */}
+        <div
           className="absolute -bottom-10 left-0 right-0 text-center"
           onClick={onClose}
         >
-          <p className="text-sm text-white/60">点击空白区域或按 ESC 键关闭</p>
+          <p className="text-sm text-white/60">
+            点击空白区域或按 ESC 键关闭
+            {images.length > 1 && ' | 使用左右箭头键切换图片'}
+          </p>
         </div>
       </div>
     </div>

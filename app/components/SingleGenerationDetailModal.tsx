@@ -15,19 +15,35 @@ export function SingleGenerationDetailModal({
   onClose,
 }: SingleGenerationDetailModalProps) {
   const [activeImage, setActiveImage] = useState<'original' | 'result'>('result');
+  const [downloading, setDownloading] = useState(false);
 
   if (!isOpen) return null;
 
   const handleDownload = async () => {
+    setDownloading(true);
     try {
+      // 使用 fetch 获取图片数据
+      const response = await fetch(generation.result_image);
+      const blob = await response.blob();
+      
+      // 创建临时 URL
+      const blobUrl = window.URL.createObjectURL(blob);
+      
+      // 创建下载链接
       const link = document.createElement('a');
-      link.href = generation.result_image;
-      link.download = `single-generation-${generation.id}.png`;
+      link.href = blobUrl;
+      link.download = `single-generation-${generation.id}-${Date.now()}.png`;
       document.body.appendChild(link);
       link.click();
+      
+      // 清理
       document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
       console.error('下载失败:', err);
+      alert('下载失败，请重试');
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -129,10 +145,11 @@ export function SingleGenerationDetailModal({
               {/* 操作按钮 */}
               <button
                 onClick={handleDownload}
-                className="flex gap-2 justify-center items-center px-6 py-3 w-full font-medium rounded-lg shadow-sm transition-all duration-200 bg-navy text-ivory hover:bg-navy/90 hover:shadow-md"
+                disabled={downloading}
+                className="flex gap-2 justify-center items-center px-6 py-3 w-full font-medium rounded-lg shadow-sm transition-all duration-200 bg-navy text-ivory hover:bg-navy/90 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Download className="w-4 h-4" />
-                下载结果图
+                {downloading ? '下载中...' : '下载结果图'}
               </button>
             </div>
 

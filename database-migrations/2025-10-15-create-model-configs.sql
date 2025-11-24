@@ -132,7 +132,7 @@ INSERT INTO public.model_configs (
 ) VALUES (
   'generate-image',
   '默认图片生成配置',
-  'https://api.aioec.tech',
+  'https://sssss.zxiaoruan.cn',
   'your-api-key-here',
   'gemini-2.5-flash-image',
   'inactive',

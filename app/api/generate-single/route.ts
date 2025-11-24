@@ -6,7 +6,7 @@ import type { ModelConfig } from '@/types/model-config';
 export const runtime = 'edge';
 
 // 从环境变量读取配置（作为回退）
-const ENV_IMAGE_API_BASE_URL = process.env.IMAGE_API_BASE_URL || 'https://api.aioec.tech';
+const ENV_IMAGE_API_BASE_URL = process.env.IMAGE_API_BASE_URL 
 const ENV_IMAGE_API_KEY = process.env.IMAGE_API_KEY;
 const ENV_IMAGE_CHAT_MODEL = process.env.IMAGE_CHAT_MODEL || 'gemini-2.5-flash-image';
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;

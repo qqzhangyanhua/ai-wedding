@@ -33,7 +33,7 @@ pnpm typecheck    # Run TypeScript type checking (strict mode)
 
    **Image Generation API (Required, server-only)**:
    - `IMAGE_API_MODE` - Generation mode: `images` (OpenAI/DALL-E) or `chat` (streaming, e.g., Gemini)
-   - `IMAGE_API_BASE_URL` - API base URL (e.g., `https://api.openai.com` or `https://api.aioec.tech`)
+   - `IMAGE_API_BASE_URL` - API base URL (e.g., `https://api.openai.com` or `https://sssss.zxiaoruan.cn`)
    - `IMAGE_API_KEY` - API key (never expose to client)
    - `IMAGE_IMAGE_MODEL` - Model for `images` mode (default: `dall-e-3`)
    - `IMAGE_CHAT_MODEL` - Model for `chat` mode (e.g., `gemini-2.5-flash-image`)

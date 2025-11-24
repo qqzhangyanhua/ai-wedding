@@ -11,7 +11,7 @@
 ```typescript
 // ❌ 硬编码 API 配置
 const response = await fetch(
-  "https://gyapi.zxiaoruan.cn/v1/chat/completions",
+  "https:/xxxxxcn/v1/chat/completions",
   {
     method: "POST",
     headers: {

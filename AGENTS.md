@@ -43,3 +43,29 @@
 - 环境变量：在 `.env` 配置 `VITE_SUPABASE_URL`、`VITE_SUPABASE_ANON_KEY`（勿提交到仓库）。
 - 区分本地/生产配置；谨慎处理日志与监控，避免泄露隐私信息。
 
+## Cursor Cloud specific instructions
+
+### Framework & Package Manager Clarification
+- **This project is Next.js 14 (App Router) + pnpm**, not Vite + npm as described above. Refer to `CLAUDE.md` and `README.md` for accurate architecture details.
+- Source code is in `app/` (Next.js App Router), not `src/`.
+- Always use `pnpm` (not `npm` or `yarn`). Lockfile: `pnpm-lock.yaml`.
+
+### Development Commands
+- `pnpm dev` — Start Next.js dev server (port 3000)
+- `pnpm build` — Production build (currently fails due to pre-existing TS errors)
+- `pnpm lint` — ESLint (has pre-existing errors, exit code 1)
+- `pnpm typecheck` — TypeScript strict check (has pre-existing errors)
+- See `CLAUDE.md` for full command reference and architecture details.
+
+### Environment Variables
+- Secrets are injected as environment variables by the Cloud Agent VM. A `.env` file must be generated from these env vars for Next.js to pick them up (the update script handles this).
+- Key required vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`. The Supabase client uses a Proxy-based lazy init pattern — the app starts without crashing even if the vars are empty, but will error on first Supabase call.
+
+### Build Caveats
+- `pnpm build` fails due to pre-existing TypeScript errors in `app/api/generate-single/route.ts` and `app/api/generate-stream/route.ts` (type `string | undefined` not assignable to `string`). The dev server (`pnpm dev`) works fine regardless.
+- The `pnpm.onlyBuiltDependencies` field in `package.json` allows `esbuild` postinstall scripts to run (required for Next.js compilation).
+
+### Testing the Application
+- No automated test suite is configured yet (no `vitest` setup, no test files). Testing is manual via the dev server.
+- To test the full user flow (login, create project, generate images), you need a valid Supabase instance with the schema from `init.sql` applied, and valid API keys for image generation.
+

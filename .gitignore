@@ -27,3 +27,4 @@ tsconfig.tsbuildinfo
 *.sln
 *.sw?
 .env
+.claude/settings.local.json
